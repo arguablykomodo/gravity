@@ -1,24 +1,55 @@
 const std = @import("std");
+const Particle = @import("Particle.zig");
+const Vec2 = @import("Vec2.zig");
+const consts = @import("consts.zig");
 
 pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+    // Figure 8 orbit
+    const px = 0.97000436;
+    const py = -0.24308753;
+    const vx = -0.93240737;
+    const vy = -0.86473146;
+    var particles = [_]Particle{
+        .{ .position = .{ .x = px, .y = py }, .velocity = .{ .x = -vx / 2.0, .y = -vy / 2.0 }, .mass = 1 },
+        .{ .position = .{ .x = -px, .y = -py }, .velocity = .{ .x = -vx / 2.0, .y = -vy / 2.0 }, .mass = 1 },
+        .{ .position = .{ .x = 0, .y = 0 }, .velocity = .{ .x = vx, .y = vy }, .mass = 1 },
+    };
 
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
     const stdout_file = std.io.getStdOut().writer();
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
 
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
+    var timer = try std.time.Timer.start();
 
-    try bw.flush(); // don't forget to flush!
+    while (true) {
+        try stdout.print("\x1b[3J", .{});
+        for (particles) |particle| {
+            try stdout.print("{d: <10.5} {d: <10.5} {d: <10.5} {d: <10.5}\n", .{ particle.position.x, particle.position.y, particle.velocity.x, particle.velocity.y });
+        }
+        try bw.flush();
+        update(particles[0..], @intToFloat(f32, timer.lap()) / std.time.ns_per_s);
+    }
 }
 
-test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
+fn update(particles: []Particle, dt: f32) void {
+    for (particles) |*particle, i| {
+        var forces = Vec2{ .x = 0, .y = 0 };
+        for (particles) |other_particle, j| {
+            if (i == j) continue;
+            const position_diff = other_particle.position.sub(particle.position);
+            const distance = position_diff.length();
+            const force = position_diff
+                .div(distance)
+                .mul(consts.GRAVITATIONAL_CONSTANT *
+                (particle.mass * other_particle.mass) /
+                (distance * distance));
+            forces = forces.add(force);
+        }
+        const acceleration = forces.div(particle.mass);
+        particle.position = particle.position
+            .add(particle.velocity.mul(dt))
+            .add(acceleration.mul(0.5).mul(dt * dt));
+        particle.velocity = particle.velocity
+            .add(acceleration.mul(dt));
+    }
 }
