@@ -3,16 +3,11 @@ import { createProgam, createShader, createVertexArray } from "./gl.js";
 /** @type {HTMLCanvasElement} */
 const canvas = document.getElementById("canvas");
 
+const timestep = 1 / 60;
+
 const { instance: { exports } } = await WebAssembly.instantiateStreaming(
   fetch("main.wasm"),
-  { env: { print: console.log } },
-);
-console.log(exports);
-
-const particles = new Float32Array(
-  exports.memory.buffer,
-  exports.setup(),
-  5 * 3,
+  { env: { bufferParticles } },
 );
 
 canvas.width = window.innerWidth;
@@ -49,10 +44,16 @@ gl.viewport(0, 0, canvas.width, canvas.height);
 gl.clearColor(0, 0, 0, 0);
 gl.clear(gl.COLOR_BUFFER_BIT);
 
-function draw() {
-  exports.update(1 / 60);
+/**
+ * @param {number} ptr
+ * @param {number} len
+ */
+function bufferParticles(ptr, len) {
+  const particles = new Float32Array(exports.memory.buffer, ptr, len * Float32Array.BYTES_PER_ELEMENT * 5);
   gl.bufferData(gl.ARRAY_BUFFER, particles, gl.DYNAMIC_DRAW);
-  gl.drawArrays(gl.POINTS, 0, 3);
-  requestAnimationFrame(draw);
+  gl.drawArrays(gl.POINTS, 0, len);
+  requestAnimationFrame(() => exports.update(timestep));
 }
-requestAnimationFrame(draw);
+
+exports.setup();
+exports.update(timestep);

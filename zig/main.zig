@@ -3,26 +3,30 @@ const Particle = @import("Particle.zig");
 const Vec2 = @import("Vec2.zig");
 const consts = @import("consts.zig");
 
-var particles: [3]Particle = undefined;
+const alloc = std.heap.wasm_allocator;
 
-export fn setup() *[3]Particle {
+var particles: std.ArrayList(Particle) = undefined;
+
+extern fn bufferParticles(ptr: [*]Particle, len: usize) void;
+
+export fn setup() void {
     // Figure 8 orbit
     const px = 0.97000436;
     const py = -0.24308753;
     const vx = -0.93240737;
     const vy = -0.86473146;
-    particles = [_]Particle{
+    particles = std.ArrayList(Particle).init(alloc);
+    particles.appendSlice(&[_]Particle{
         .{ .position = .{ .x = px, .y = py }, .velocity = .{ .x = -vx / 2.0, .y = -vy / 2.0 }, .mass = 1 },
         .{ .position = .{ .x = -px, .y = -py }, .velocity = .{ .x = -vx / 2.0, .y = -vy / 2.0 }, .mass = 1 },
         .{ .position = .{ .x = 0, .y = 0 }, .velocity = .{ .x = vx, .y = vy }, .mass = 1 },
-    };
-    return &particles;
+    }) catch unreachable;
 }
 
 export fn update(dt: f32) void {
-    for (particles) |*particle, i| {
+    for (particles.items) |*particle, i| {
         var forces = Vec2{ .x = 0, .y = 0 };
-        for (particles) |other_particle, j| {
+        for (particles.items) |other_particle, j| {
             if (i == j) continue;
             const position_diff = other_particle.position.sub(particle.position);
             const distance = position_diff.length();
@@ -40,4 +44,5 @@ export fn update(dt: f32) void {
         particle.velocity = particle.velocity
             .add(acceleration.mul(dt));
     }
+    bufferParticles(particles.items.ptr, particles.items.len);
 }
