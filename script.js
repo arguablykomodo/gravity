@@ -10,8 +10,8 @@ const { instance: { exports } } = await WebAssembly.instantiateStreaming(
   { env: { bufferParticles } },
 );
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+canvas.width = 1024;
+canvas.height = 1024;
 
 const gl = canvas.getContext("webgl2");
 if (!gl) alert("Your browser does not support WebGL :(");
