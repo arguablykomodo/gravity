@@ -10,25 +10,31 @@ export function createShader(gl, type, source) {
   gl.compileShader(shader);
   const success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
   if (success) return shader;
-  console.error(gl.getShaderInfoLog(shader));
-  gl.deleteShader(shader);
+  else {
+    const message = gl.getShaderInfoLog(shader);
+    gl.deleteShader(shader);
+    throw new Error(message);
+  }
 }
 
 /**
  * @param {WebGL2RenderingContext} gl
- * @param {WebGLShader} vertexShader
- * @param {WebGLShader} fragmentShader
+ * @param {string} vertex
+ * @param {string} fragment
  * @returns {WebGLProgram}
  */
-export function createProgam(gl, vertexShader, fragmentShader) {
+export function createProgam(gl, vertex, fragment) {
   const program = gl.createProgram();
-  gl.attachShader(program, vertexShader);
-  gl.attachShader(program, fragmentShader);
+  gl.attachShader(program, createShader(gl, gl.VERTEX_SHADER, vertex));
+  gl.attachShader(program, createShader(gl, gl.FRAGMENT_SHADER, fragment));
   gl.linkProgram(program);
   const success = gl.getProgramParameter(program, gl.LINK_STATUS);
   if (success) return program;
-  console.error(gl.getProgramInfoLog(program));
-  gl.deleteProgram(program);
+  else {
+    const message = gl.getProgramInfoLog(program);
+    gl.deleteProgram(program);
+    throw new Error(message);
+  }
 }
 
 /**

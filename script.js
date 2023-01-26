@@ -16,17 +16,12 @@ canvas.height = 1024;
 const gl = canvas.getContext("webgl2");
 if (!gl) alert("Your browser does not support WebGL :(");
 
-const vertexShader = createShader(
+const program = createProgam(
   gl,
-  gl.VERTEX_SHADER,
-  await fetch("vertex.glsl").then((r) => r.text()),
+  ...await Promise.all(
+    ["vertex.glsl", "fragment.glsl"].map((u) => fetch(u).then((r) => r.text())),
+  ),
 );
-const fragmentShader = createShader(
-  gl,
-  gl.FRAGMENT_SHADER,
-  await fetch("fragment.glsl").then((r) => r.text()),
-);
-const program = createProgam(gl, vertexShader, fragmentShader);
 
 const buffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -49,7 +44,11 @@ gl.clear(gl.COLOR_BUFFER_BIT);
  * @param {number} len
  */
 function bufferParticles(ptr, len) {
-  const particles = new Float32Array(exports.memory.buffer, ptr, len * Float32Array.BYTES_PER_ELEMENT * 5);
+  const particles = new Float32Array(
+    exports.memory.buffer,
+    ptr,
+    len * Float32Array.BYTES_PER_ELEMENT * 5,
+  );
   gl.bufferData(gl.ARRAY_BUFFER, particles, gl.DYNAMIC_DRAW);
   gl.drawArrays(gl.POINTS, 0, len);
   requestAnimationFrame(() => exports.update(timestep));
