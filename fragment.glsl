@@ -2,10 +2,12 @@
 
 precision highp float;
 
-in vec2 out_velocity;
+in vec2 v_velocity;
+in vec2 v_uv;
 
 out vec4 color;
 
 void main() {
-  color = vec4(abs(out_velocity), 1.0, 1.0);
+  float mask = step(length(v_uv), 1.0);
+  color = mask * vec4(v_velocity / (2.0 + abs(v_velocity)) * 0.5 + 0.5, 1.0, 1.0);
 }

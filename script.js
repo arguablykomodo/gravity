@@ -1,4 +1,4 @@
-import { createProgam, createShader, createVertexArray } from "./gl.js";
+import { createProgam, createVertexArray } from "./gl.js";
 
 /** @type {HTMLCanvasElement} */
 const canvas = document.getElementById("canvas");
@@ -23,8 +23,8 @@ const program = createProgam(
   ),
 );
 
-const buffer = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+const particleBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, particleBuffer);
 
 const vao = createVertexArray(gl, program, [
   { name: "position", size: 2 },
@@ -32,8 +32,27 @@ const vao = createVertexArray(gl, program, [
   { name: "mass", size: 1 },
 ]);
 
+const vertexBuffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+  -1.0, -1.0,
+  -1.0, +1.0,
+  +1.0, -1.0,
+  +1.0, -1.0,
+  -1.0, +1.0,
+  +1.0, +1.0,
+]), gl.STATIC_DRAW);
+
+const vertexLocation = gl.getAttribLocation(program, "vertex");
+gl.enableVertexAttribArray(vertexLocation);
+gl.vertexAttribPointer(vertexLocation, 2, gl.FLOAT, false, 0, 0);
+
 gl.useProgram(program);
 gl.bindVertexArray(vao);
+gl.bindBuffer(gl.ARRAY_BUFFER, particleBuffer);
+
+gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+gl.enable(gl.BLEND);
 
 gl.viewport(0, 0, canvas.width, canvas.height);
 gl.clearColor(0, 0, 0, 0);
@@ -50,7 +69,7 @@ function bufferParticles(ptr, len) {
     len * Float32Array.BYTES_PER_ELEMENT * 5,
   );
   gl.bufferData(gl.ARRAY_BUFFER, particles, gl.DYNAMIC_DRAW);
-  gl.drawArrays(gl.POINTS, 0, len);
+  gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, len);
   requestAnimationFrame(() => exports.update(timestep));
 }
 

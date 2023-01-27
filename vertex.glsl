@@ -3,11 +3,14 @@
 in vec2 position;
 in vec2 velocity;
 in float mass;
+in vec2 vertex;
 
-out vec2 out_velocity;
+out vec2 v_velocity;
+out vec2 v_uv;
 
 void main() {
-  gl_Position = vec4(position / 200.0, 0.0, 1.0);
-  gl_PointSize = sqrt(mass / 3.14159) * 1024.0 / 200.0;
-  out_velocity = velocity;
+  float radius = sqrt(mass / 3.1415926535898);
+  gl_Position = vec4((position + vertex * radius) / 200.0, 0.0, 1.0);
+  v_velocity = velocity;
+  v_uv = vertex;
 }

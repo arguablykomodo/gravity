@@ -4,7 +4,7 @@
  * @param {string} source
  * @returns {WebGLShader}
  */
-export function createShader(gl, type, source) {
+function createShader(gl, type, source) {
   const shader = gl.createShader(type);
   gl.shaderSource(shader, source);
   gl.compileShader(shader);
@@ -64,6 +64,7 @@ export function createVertexArray(gl, program, attributes) {
       Float32Array.BYTES_PER_ELEMENT * totalSize,
       Float32Array.BYTES_PER_ELEMENT * offset,
     );
+    gl.vertexAttribDivisor(location, 1);
     offset += attribute.size;
   }
   return vao;
