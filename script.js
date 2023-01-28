@@ -1,4 +1,5 @@
 import { createProgam, createVertexArray } from "./gl.js";
+import { multiply, scaling, translation } from "./matrix.js";
 
 /** @type {HTMLCanvasElement} */
 const canvas = document.getElementById("canvas");
@@ -9,9 +10,6 @@ const { instance: { exports } } = await WebAssembly.instantiateStreaming(
   fetch("main.wasm"),
   { env: { bufferParticles } },
 );
-
-canvas.width = 1024;
-canvas.height = 1024;
 
 const gl = canvas.getContext("webgl2");
 if (!gl) alert("Your browser does not support WebGL :(");
@@ -34,14 +32,18 @@ const vao = createVertexArray(gl, program, [
 
 const vertexBuffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-  -1.0, -1.0,
-  -1.0, +1.0,
-  +1.0, -1.0,
-  +1.0, -1.0,
-  -1.0, +1.0,
-  +1.0, +1.0,
-]), gl.STATIC_DRAW);
+gl.bufferData(
+  gl.ARRAY_BUFFER,
+  new Float32Array([
+    -1.0, -1.0,
+    -1.0, +1.0,
+    +1.0, -1.0,
+    +1.0, -1.0,
+    -1.0, +1.0,
+    +1.0, +1.0,
+  ]),
+  gl.STATIC_DRAW,
+);
 
 const vertexLocation = gl.getAttribLocation(program, "vertex");
 gl.enableVertexAttribArray(vertexLocation);
@@ -58,11 +60,63 @@ gl.viewport(0, 0, canvas.width, canvas.height);
 gl.clearColor(0, 0, 0, 0);
 gl.clear(gl.COLOR_BUFFER_BIT);
 
+const viewUniform = gl.getUniformLocation(program, "view");
+
+let aspectMatrix = scaling(1, 1);
+let translationMatrix = translation(0, 0);
+let zoomMatrix = scaling(1, 1);
+
+let pixelTranslation = { x: 0, y: 0 };
+let isMoving = false;
+let zoom = 1;
+
+function updateView() {
+  gl.uniformMatrix3fv(
+    viewUniform,
+    false,
+    multiply(multiply(zoomMatrix, translationMatrix), aspectMatrix),
+  );
+}
+
+function resize() {
+  if (
+    canvas.width !== canvas.clientWidth ||
+    canvas.height !== canvas.clientHeight
+  ) {
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    aspectMatrix = scaling(canvas.height / canvas.width, 1);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    updateView();
+  }
+}
+
+document.addEventListener("mousedown", () => isMoving = true);
+document.addEventListener("mouseup", () => isMoving = false);
+document.addEventListener("mousemove", (e) => {
+  if (isMoving) {
+    pixelTranslation.x += e.movementX / zoom;
+    pixelTranslation.y += e.movementY / zoom;
+    translationMatrix = translation(
+      pixelTranslation.x / canvas.width * 2,
+      -pixelTranslation.y / canvas.height * 2,
+    );
+    updateView();
+  }
+});
+
+document.addEventListener("wheel", (e) => {
+  zoom *= 2 ** -Math.sign(e.deltaY);
+  zoomMatrix = scaling(zoom, zoom);
+  updateView();
+});
+
 /**
  * @param {number} ptr
  * @param {number} len
  */
 function bufferParticles(ptr, len) {
+  resize();
   const particles = new Float32Array(
     exports.memory.buffer,
     ptr,

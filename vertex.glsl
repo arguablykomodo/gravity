@@ -8,9 +8,12 @@ in vec2 vertex;
 out vec2 v_velocity;
 out vec2 v_uv;
 
+uniform mat3 view;
+
 void main() {
   float radius = sqrt(mass / 3.1415926535898);
-  gl_Position = vec4((position + vertex * radius) / 200.0, 0.0, 1.0);
+  vec2 vertexPos = position + vertex * radius;
+  gl_Position = vec4((view * vec3(vertexPos, 1.0)).xy, 0.0, 1.0);
   v_velocity = velocity;
   v_uv = vertex;
 }
