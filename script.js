@@ -127,5 +127,5 @@ function bufferParticles(ptr, len) {
   requestAnimationFrame(() => exports.update(timestep));
 }
 
-exports.setup();
+exports.setup(BigInt(Math.random() * 2 ** 64));
 exports.update(timestep);

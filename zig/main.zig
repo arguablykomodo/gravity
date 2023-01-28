@@ -5,27 +5,26 @@ const consts = @import("consts.zig");
 
 const alloc = std.heap.wasm_allocator;
 
+var rng: std.rand.DefaultPrng = undefined;
 var particles: std.ArrayList(Particle) = undefined;
 
 extern fn bufferParticles(ptr: [*]Particle, len: usize) void;
 
-export fn setup() void {
-    // Protoplanetary disk
-    const amount = 5000;
-    const radius = 50.0;
-    const speed = 0.075;
-    var rng = std.rand.DefaultPrng.init(0);
+export fn setup(seed: u64) void {
+    rng = std.rand.DefaultPrng.init(seed);
+    particles = std.ArrayList(Particle).initCapacity(alloc, consts.INITIAL_PARTICLES) catch unreachable;
     const rand = rng.random();
-    particles = std.ArrayList(Particle).initCapacity(alloc, amount) catch unreachable;
     var i: usize = 0;
-    while (i < amount) : (i += 1) {
-        const x = (rand.floatNorm(f32)) * radius;
-        const y = (rand.floatNorm(f32)) * radius;
-        const r = @sqrt(x * x + y * y);
-        const direction = std.math.atan2(f32, y, x) + std.math.pi / 2.0;
+    while (i < consts.INITIAL_PARTICLES) : (i += 1) {
+        const position = Vec2.new(
+            rand.floatNorm(f32) * consts.DISK_RADIUS,
+            rand.floatNorm(f32) * consts.DISK_RADIUS,
+        );
+        const r = position.length();
+        const direction = std.math.atan2(f32, position.y, position.x) + std.math.pi / 2.0;
         particles.append(.{
-            .position = Vec2.new(x, y),
-            .velocity = Vec2.new(@cos(direction), @sin(direction)).mul(r).mul(speed),
+            .position = position,
+            .velocity = Vec2.new(@cos(direction), @sin(direction)).mul(r).mul(consts.ANGULAR_VELOCITY),
             .mass = (rand.float(f32) + 1.0) / 2.0,
         }) catch unreachable;
     }
