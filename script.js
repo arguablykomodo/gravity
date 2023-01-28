@@ -62,13 +62,13 @@ gl.clear(gl.COLOR_BUFFER_BIT);
 
 const viewUniform = gl.getUniformLocation(program, "view");
 
-let aspectMatrix = scaling(1, 1);
-let translationMatrix = translation(0, 0);
-let zoomMatrix = scaling(1, 1);
-
 let pixelTranslation = { x: 0, y: 0 };
 let isMoving = false;
-let zoom = 1;
+let zoom = 0.01;
+
+let aspectMatrix = scaling(canvas.height / canvas.width, 1);
+let translationMatrix = translation(0, 0);
+let zoomMatrix = scaling(zoom, zoom);
 
 function updateView() {
   gl.uniformMatrix3fv(
