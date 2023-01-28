@@ -24,8 +24,8 @@ export fn setup() void {
         const r = @sqrt(x * x + y * y);
         const direction = std.math.atan2(f32, y, x) + std.math.pi / 2.0;
         particles.append(.{
-            .position = .{ .x = x, .y = y },
-            .velocity = .{ .x = @cos(direction) * r * speed, .y = @sin(direction) * r * speed },
+            .position = Vec2.new(x, y),
+            .velocity = Vec2.new(@cos(direction), @sin(direction)).mul(r).mul(speed),
             .mass = (rand.float(f32) + 1.0) / 2.0,
         }) catch unreachable;
     }
@@ -37,7 +37,7 @@ export fn update(dt: f32) void {
 
     for (particles.items) |*particle, i| {
         if (particle.mass == 0) continue;
-        var forces = Vec2{ .x = 0, .y = 0 };
+        var forces = Vec2.new(0, 0);
         for (particles.items) |*other_particle, j| {
             if (other_particle.mass == 0) continue;
             if (i == j) continue;

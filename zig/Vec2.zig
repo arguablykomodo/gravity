@@ -3,6 +3,10 @@ y: f32,
 
 const Vec2 = @This();
 
+pub fn new(x: f32, y: f32) Vec2 {
+    return Vec2{ .x = x, .y = y };
+}
+
 pub fn add(self: Vec2, other: anytype) Vec2 {
     const type_of = @TypeOf(other);
     const type_info = @typeInfo(type_of);
