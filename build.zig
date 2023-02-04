@@ -1,11 +1,14 @@
 const std = @import("std");
 
 pub fn build(b: *std.build.Builder) void {
-    const mode = b.standardReleaseOptions();
+    const optimize = b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseFast });
 
-    const wasm = b.addStaticLibrary("gravity", "zig/wasm.zig");
-    wasm.setTarget(std.zig.CrossTarget.parse(.{ .arch_os_abi = "wasm32-freestanding" }) catch unreachable);
-    wasm.setBuildMode(mode);
+    const wasm = b.addStaticLibrary(.{
+        .name = "gravity",
+        .root_source_file = .{ .path = "zig/wasm.zig" },
+        .target = std.zig.CrossTarget.parse(.{ .arch_os_abi = "wasm32-freestanding" }) catch unreachable,
+        .optimize = optimize,
+    });
     wasm.export_symbol_names = &.{ "sizeOfParticle", "sizeOfNode", "quadtreeLimits", "init", "step" };
     wasm.linkage = .dynamic;
 
@@ -23,8 +26,10 @@ pub fn build(b: *std.build.Builder) void {
     const deno_step = b.addSystemCommand(&.{ "deno", "bundle", "--quiet", "ts/main.ts", b.pathJoin(&.{ b.install_prefix, "main.js" }) });
     b.getInstallStep().dependOn(&deno_step.step);
 
-    const zig_tests = b.addTest("zig/test.zig");
-    zig_tests.setBuildMode(mode);
+    const zig_tests = b.addTest(.{
+        .root_source_file = .{ .path = "zig/test.zig" },
+        .optimize = optimize,
+    });
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&zig_tests.step);
 }

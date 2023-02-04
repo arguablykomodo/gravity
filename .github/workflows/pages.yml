@@ -14,7 +14,7 @@ jobs:
       - uses: goto-bus-stop/setup-zig@v2
         with:
           version: 0.11.0-dev.1568+c9b957c93
-      - run: zig build -Drelease-small
+      - run: zig build -Drelease
       - uses: actions/upload-pages-artifact@v1
         with:
           path: ${{ env.BUILD_PATH }}/zig-out
