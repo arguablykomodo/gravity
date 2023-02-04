@@ -33,7 +33,7 @@ jobs:
         with:
           key: ${{ runner.os }}-zig
           path: zig-cache
-      - run: zig build -Drelease -p _site
+      - run: zig build -Doptimize=ReleaseSmall -p _site
       - uses: actions/upload-pages-artifact@v1
   deploy:
     needs: build
