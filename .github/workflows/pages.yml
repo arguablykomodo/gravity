@@ -4,18 +4,27 @@ on:
     branches:
       - master
 jobs:
-  pages:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
       - uses: goto-bus-stop/setup-zig@v2
         with:
-          version: 0.11.0-dev.1460+e675af069
-      - run: zig build-lib -OReleaseSmall zig/main.zig -target wasm32-freestanding -dynamic --export=setup --export=update
-      - uses: peaceiris/actions-gh-pages@v3
+          version: 0.11.0-dev.1568+c9b957c93
+      - run: zig build -Drelease-small
+      - uses: actions/upload-pages-artifact@v1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
-          exclude_assets: .github,.gitignore,zig,zig-cache
-    permissions:
-      contents: write
+          path: ${{ env.BUILD_PATH }}/zig-out
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1
