@@ -1,13 +1,16 @@
-/**
- * @typedef {[number, number, number, number, number, number, number, number, number]} Matrix
- */
+export type Matrix = [
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+];
 
-/**
- * @param {Matrix} a
- * @param {Matrix} b
- * @returns {Matrix}
- */
-export function multiply(a, b) {
+export function multiply(a: Matrix, b: Matrix): Matrix {
   return [
     b[0] * a[0] + b[1] * a[3] + b[2] * a[6],
     b[0] * a[1] + b[1] * a[4] + b[2] * a[7],
@@ -21,12 +24,17 @@ export function multiply(a, b) {
   ];
 }
 
-/**
- * @param {number} x
- * @param {number} y
- * @returns {Matrix}
- */
-export function translation(x, y) {
+export function identity(): Matrix {
+  // deno-fmt-ignore
+  return [
+    0, 0, 0,
+    0, 0, 0,
+    0, 0, 1,
+  ];
+}
+
+export function translation(x: number, y: number): Matrix {
+  // deno-fmt-ignore
   return [
     1, 0, 0,
     0, 1, 0,
@@ -34,13 +42,10 @@ export function translation(x, y) {
   ];
 }
 
-/**
- * @param {number} theta
- * @returns {Matrix}
- */
-export function rotation(theta) {
+export function rotation(theta: number): Matrix {
   const cos = Math.cos(theta);
   const sin = Math.sin(theta);
+  // deno-fmt-ignore
   return [
     cos, -sin, 0,
     sin, cos, 0,
@@ -48,12 +53,8 @@ export function rotation(theta) {
   ];
 }
 
-/**
- * @param {number} x
- * @param {number} y
- * @returns {Matrix}
- */
-export function scaling(x, y) {
+export function scaling(x: number, y: number): Matrix {
+  // deno-fmt-ignore
   return [
     x, 0, 0,
     0, y, 0,

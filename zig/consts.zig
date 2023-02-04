@@ -1,5 +1,8 @@
-// pub const GRAVITATIONAL_CONSTANT = 6.67408e-11;
+pub const QUADTREE_LIMITS = 1024.0;
+pub const QUADTREE_THETA = 0.5;
+
 pub const GRAVITATIONAL_CONSTANT = 1.0;
-pub const INITIAL_PARTICLES = 5000;
-pub const DISK_RADIUS = 50.0;
-pub const ANGULAR_VELOCITY = 0.075;
+
+pub const INITIAL_PARTICLES = 1000;
+pub const DISK_SD = 100.0;
+pub const ANGULAR_VELOCITY = 0.01;
