@@ -183,9 +183,11 @@ function init() {
     thetaInput.valueAsNumber,
   );
   for (let i = 0; i < particlesInput.valueAsNumber; i++) {
+    const r = Math.sqrt(Math.random()) * spreadInput.valueAsNumber;
+    const a = Math.random() * Math.PI * 2.0;
     wasm.insert(
-      (Math.random() * 2.0 - 1.0) * spreadInput.valueAsNumber,
-      (Math.random() * 2.0 - 1.0) * spreadInput.valueAsNumber,
+      Math.cos(a) * r,
+      Math.sin(a) * r,
       (Math.random() * 2.0 - 1.0) * speedInput.valueAsNumber,
       (Math.random() * 2.0 - 1.0) * speedInput.valueAsNumber,
       1.0,
