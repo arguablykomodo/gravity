@@ -1,7 +1,7 @@
 export interface Wasm {
   memory: WebAssembly.Memory;
-  sizeOfParticle(): number;
-  sizeOfNode(): number;
+  sizeOfParticle: WebAssembly.Global;
+  sizeOfNode: WebAssembly.Global;
   init(scale: number, bigG: number, theta: number): void;
   setParameters(bigG: number, theta: number): void;
   deinit(): void;

@@ -9,15 +9,7 @@ pub fn build(b: *std.build.Builder) void {
         .target = std.zig.CrossTarget.parse(.{ .arch_os_abi = "wasm32-freestanding" }) catch unreachable,
         .optimize = optimize,
     });
-    wasm.export_symbol_names = &.{
-        "sizeOfParticle",
-        "sizeOfNode",
-        "init",
-        "setParameters",
-        "deinit",
-        "insert",
-        "step",
-    };
+    wasm.rdynamic = true;
     wasm.linkage = .dynamic;
 
     const install_wasm = b.addInstallArtifact(wasm);

@@ -76,8 +76,9 @@ function returnOk(
 
 setupWasm(returnError, returnOk).then(async (w) => {
   wasm = w;
-  sizeOfParticle = wasm.sizeOfParticle();
-  sizeOfNode = wasm.sizeOfNode();
+  const globalView = new DataView(wasm.memory.buffer);
+  sizeOfParticle = globalView.getUint32(wasm.sizeOfParticle.value, true);
+  sizeOfNode = globalView.getUint32(wasm.sizeOfNode.value, true);
 
   gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
   gl.enable(gl.BLEND);

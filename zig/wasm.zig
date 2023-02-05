@@ -13,13 +13,8 @@ extern fn returnOk(
     nodes_len: usize,
 ) void;
 
-export fn sizeOfParticle() usize {
-    return @sizeOf(Particle);
-}
-
-export fn sizeOfNode() usize {
-    return @sizeOf(Coord);
-}
+export const sizeOfParticle = @as(u32, @sizeOf(Particle));
+export const sizeOfNode = @as(u32, @sizeOf(Coord));
 
 export fn init(scale: f32, big_g: f32, theta: f32) void {
     quadtree = Quadtree.init(std.heap.wasm_allocator, scale, big_g, theta);
