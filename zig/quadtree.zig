@@ -77,43 +77,43 @@ pub const Quadtree = struct {
 
     pub fn insert(self: *Quadtree, particle: Particle) !void {
         try self.particles.append(particle);
-        return self.insertInternal(Coord.ROOT, self.particles.items.len - 1);
+        return self.reinsert(self.particles.items.len - 1, Coord.ROOT);
     }
 
-    fn insertInternal(self: *Quadtree, coord: Coord, index: usize) !void {
+    fn reinsert(self: *Quadtree, index: usize, coord: Coord) !void {
         if (self.nodes.getPtr(coord)) |node| switch (node.*) {
-            .leaf => |other_particle| {
-                node.* = Node{ .trunk = .{ .weighted_sum = .{ 0.0, 0.0 }, .total_mass = 0 } };
-                try self.insertInternal(coord, other_particle);
-                return try self.insertInternal(coord, index);
+            .leaf => |other_index| {
+                node.* = Node{ .trunk = .{ .weighted_sum = .{ 0.0, 0.0 }, .total_mass = 0.0 } };
+                try self.reinsert(other_index, coord);
+                try self.reinsert(index, coord);
             },
-            .trunk => |*data| for (coord.children()) |child| {
+            .trunk => |*data| {
                 const particle = self.particles.items[index];
-                if (child.isInside(particle.position)) {
-                    data.weighted_sum += particle.position * @splat(2, particle.mass);
-                    data.total_mass += particle.mass;
-                    return try self.insertInternal(child, index);
-                }
-            } else unreachable,
+                data.weighted_sum += particle.position * @splat(2, particle.mass);
+                data.total_mass += particle.mass;
+                const child = for (coord.children()) |child| {
+                    if (child.isInside(particle.position)) break child;
+                } else unreachable;
+                try self.reinsert(index, child);
+            },
         } else {
             self.particles.items[index].node = coord;
             try self.nodes.put(coord, Node{ .leaf = index });
-            return;
         }
     }
 
     fn remove(self: *Quadtree, index: usize) void {
         const particle = &self.particles.items[index];
         if (!self.nodes.swapRemove(particle.node)) unreachable;
-        if (particle.node.depth > 0) self.collapse(particle.node.parent(), particle);
+        if (particle.node.depth > 0) self.collapse(particle, particle.node.parent());
     }
 
-    fn collapse(self: *Quadtree, coord: Coord, particle: *const Particle) void {
+    fn collapse(self: *Quadtree, particle: *const Particle, coord: Coord) void {
         const node = self.nodes.getPtr(coord).?;
         node.trunk.weighted_sum -= particle.position * @splat(2, particle.mass);
         node.trunk.total_mass -= particle.mass;
 
-        var children: usize = 0;
+        var children: std.math.IntFittingRange(0, 4) = 0;
         var only_child: Coord = undefined;
         for (coord.children()) |child| if (self.nodes.contains(child)) {
             children += 1;
@@ -133,7 +133,7 @@ pub const Quadtree = struct {
             else => {},
         }
 
-        if (coord.depth > 0) self.collapse(coord.parent(), particle);
+        if (coord.depth > 0) self.collapse(particle, coord.parent());
     }
 
     fn changeSum(self: *Quadtree, coord: Coord, change: @Vector(2, f32)) void {
@@ -179,7 +179,7 @@ pub const Quadtree = struct {
             if (!particle.node.isInside(particle.position)) {
                 self.remove(i);
                 if (Coord.ROOT.isInside(particle.position)) {
-                    try self.insertInternal(Coord.ROOT, i);
+                    try self.reinsert(i, Coord.ROOT);
                 } else {
                     self.delete(i);
                     i -= 1;
