@@ -8,6 +8,12 @@ const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const bigGInput = document.getElementById("bigG") as HTMLInputElement;
 const thetaInput = document.getElementById("theta") as HTMLInputElement;
 const dtInput = document.getElementById("dt") as HTMLInputElement;
+const drawParticlesInput = document.getElementById(
+  "drawParticles",
+) as HTMLInputElement;
+const drawQuadtreeInput = document.getElementById(
+  "drawQuadtree",
+) as HTMLInputElement;
 const scaleInput = document.getElementById("scale") as HTMLInputElement;
 const particlesInput = document.getElementById("particles") as HTMLInputElement;
 const spreadInput = document.getElementById("spread") as HTMLInputElement;
@@ -189,10 +195,14 @@ function step() {
   );
 
   gl.clear(gl.COLOR_BUFFER_BIT);
-  wasm.getParticles();
-  renderPipeline(gl, particlesPipeline, particleCount, finalMatrix);
-  wasm.getNodes();
-  renderPipeline(gl, nodesPipeline, nodeCount, finalMatrix);
+  if (drawParticlesInput.checked) {
+    wasm.getParticles();
+    renderPipeline(gl, particlesPipeline, particleCount, finalMatrix);
+  }
+  if (drawQuadtreeInput.checked) {
+    wasm.getNodes();
+    renderPipeline(gl, nodesPipeline, nodeCount, finalMatrix);
+  }
   requestAnimationFrame(step);
 }
 

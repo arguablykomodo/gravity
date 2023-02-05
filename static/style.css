@@ -59,6 +59,13 @@ body {
   width: 100%;
 }
 
+#settings input[type="checkbox"] {
+  justify-self: start;
+  width: auto;
+  margin: 2.5px 0;
+  padding: 0;
+}
+
 #settings button {
   background: #30303080;
   color: inherit;
