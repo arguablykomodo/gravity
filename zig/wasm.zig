@@ -21,8 +21,13 @@ export fn sizeOfNode() usize {
     return @sizeOf(Coord);
 }
 
-export fn init(scale: f32, gravitational_constant: f32, theta: f32) void {
-    quadtree = Quadtree.init(std.heap.wasm_allocator, scale, gravitational_constant, theta);
+export fn init(scale: f32, big_g: f32, theta: f32) void {
+    quadtree = Quadtree.init(std.heap.wasm_allocator, scale, big_g, theta);
+}
+
+export fn setParameters(big_g: f32, theta: f32) void {
+    quadtree.big_g = big_g;
+    quadtree.theta = theta;
 }
 
 export fn deinit() void {

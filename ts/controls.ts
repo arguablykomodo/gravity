@@ -18,16 +18,16 @@ export function setupControls(canvas: HTMLCanvasElement) {
   let isMoving = false;
   let zoom = 0.1;
 
-  document.addEventListener("mousedown", () => isMoving = true);
-  document.addEventListener("mouseup", () => isMoving = false);
-  document.addEventListener("mousemove", (e) => {
+  canvas.addEventListener("mousedown", () => isMoving = true);
+  canvas.addEventListener("mouseup", () => isMoving = false);
+  canvas.addEventListener("mousemove", (e) => {
     if (isMoving) {
       pixelTranslation.x += e.movementX / zoom;
       pixelTranslation.y += e.movementY / zoom;
       updateView(pixelTranslation, zoom, canvas);
     }
   });
-  document.addEventListener("wheel", (e) => {
+  canvas.addEventListener("wheel", (e) => {
     zoom *= 2 ** -Math.sign(e.deltaY);
     updateView(pixelTranslation, zoom, canvas);
   });

@@ -2,7 +2,8 @@ export interface Wasm {
   memory: WebAssembly.Memory;
   sizeOfParticle(): number;
   sizeOfNode(): number;
-  init(scale: number, gravitationalConstant: number, theta: number): void;
+  init(scale: number, bigG: number, theta: number): void;
+  setParameters(bigG: number, theta: number): void;
   deinit(): void;
   insert(x: number, y: number, vx: number, vy: number, mass: number): void;
   step(dt: number): void;

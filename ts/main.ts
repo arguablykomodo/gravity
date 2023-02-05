@@ -4,6 +4,16 @@ import { multiply, scaling } from "./matrix.ts";
 import { setupWasm, Wasm } from "./wasm.ts";
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
+
+const bigGInput = document.getElementById("bigG") as HTMLInputElement;
+const thetaInput = document.getElementById("theta") as HTMLInputElement;
+const dtInput = document.getElementById("dt") as HTMLInputElement;
+const scaleInput = document.getElementById("scale") as HTMLInputElement;
+const particlesInput = document.getElementById("particles") as HTMLInputElement;
+const spreadInput = document.getElementById("spread") as HTMLInputElement;
+const speedInput = document.getElementById("speed") as HTMLInputElement;
+const restartButton = document.getElementById("restart") as HTMLButtonElement;
+
 const gl = canvas.getContext("webgl2")!;
 if (gl === null) throw new Error("Browser does not support WebGL");
 
@@ -61,7 +71,7 @@ function returnOk(
   gl.clear(gl.COLOR_BUFFER_BIT);
   renderPipeline(gl, particlesPipeline, particlesLen, finalMatrix);
   renderPipeline(gl, nodesPipeline, nodesLen, finalMatrix);
-  requestAnimationFrame(() => wasm.step(1.0 / 60.0));
+  requestAnimationFrame(() => wasm.step(dtInput.valueAsNumber));
 }
 
 setupWasm(returnError, returnOk).then(async (w) => {
@@ -145,7 +155,6 @@ setupWasm(returnError, returnOk).then(async (w) => {
     ["view", "scale"],
   );
   gl.useProgram(nodesPipeline.program);
-  gl.uniform1f(nodesPipeline.uniforms.scale, 1024.0);
 
   gl.bindBuffer(gl.ARRAY_BUFFER, nodesPipeline.buffers.vertices);
   gl.bufferData(
@@ -162,15 +171,36 @@ setupWasm(returnError, returnOk).then(async (w) => {
 
   setupControls(canvas);
 
-  wasm.init(1024.0, 1.0, 0.5);
-  for (let i = 0; i < 1000; i++) {
+  init();
+  wasm.step(dtInput.valueAsNumber);
+});
+
+function init() {
+  gl.uniform1f(nodesPipeline.uniforms.scale, scaleInput.valueAsNumber);
+  wasm.init(
+    scaleInput.valueAsNumber,
+    bigGInput.valueAsNumber,
+    thetaInput.valueAsNumber,
+  );
+  for (let i = 0; i < particlesInput.valueAsNumber; i++) {
     wasm.insert(
-      Math.random() * 200.0 - 100.0,
-      Math.random() * 200.0 - 100.0,
-      Math.random() - 0.5,
-      Math.random() - 0.5,
+      (Math.random() * 2.0 - 1.0) * spreadInput.valueAsNumber,
+      (Math.random() * 2.0 - 1.0) * spreadInput.valueAsNumber,
+      (Math.random() * 2.0 - 1.0) * speedInput.valueAsNumber,
+      (Math.random() * 2.0 - 1.0) * speedInput.valueAsNumber,
       1.0,
     );
   }
-  wasm.step(1.0 / 60.0);
+}
+
+function setParameters() {
+  wasm.setParameters(bigGInput.valueAsNumber, thetaInput.valueAsNumber);
+}
+
+bigGInput.addEventListener("change", setParameters);
+thetaInput.addEventListener("change", setParameters);
+
+restartButton.addEventListener("click", () => {
+  wasm.deinit();
+  init();
 });

@@ -13,6 +13,7 @@ pub fn build(b: *std.build.Builder) void {
         "sizeOfParticle",
         "sizeOfNode",
         "init",
+        "setParameters",
         "deinit",
         "insert",
         "step",

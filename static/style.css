@@ -1,13 +1,78 @@
+* {
+  box-sizing: border-box;
+}
+
 body {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+
+  font-family: "Cascadia Code", "Fira Mono", monospace;
+  font-size: 13px;
+
   background: black;
+  color: #ddd;
   margin: 0;
 }
 
 #canvas {
   position: absolute;
+  z-index: -1;
   left: 0;
   top: 0;
   width: 100vw;
   height: 100vh;
   object-fit: contain;
+}
+
+#settings {
+  display: flex;
+  flex-direction: column;
+  min-width: 45ch;
+  background: #00000080;
+}
+
+#settings summary {
+  background: #20202080;
+  padding: 0.25rem 1ch;
+  user-select: none;
+}
+
+#settings summary:hover {
+  background: #28282880;
+}
+
+#settings details > div {
+  padding: 1ch;
+  display: grid;
+  grid-template-columns: 1fr 12ch;
+  grid-gap: 0.2rem 1ch;
+  align-items: center;
+  text-align: right;
+}
+
+#settings input {
+  background: #00000080;
+  color: inherit;
+  border: 1px solid #222;
+  font: inherit;
+  width: 100%;
+}
+
+#settings button {
+  background: #30303080;
+  color: inherit;
+  border: none;
+  font: inherit;
+  padding: 0.25rem 1ch;
+}
+
+#settings button:hover {
+  background: #38383880;
+}
+
+#settings button:active {
+  background: #28282880;
+  color: transparent;
+  text-shadow: 0px 1px #aaa;
 }

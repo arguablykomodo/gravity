@@ -62,15 +62,15 @@ pub const Quadtree = struct {
     nodes: std.AutoArrayHashMap(Coord, Node),
     particles: std.ArrayList(Particle),
     scale: f32,
-    gravitational_constant: f32,
+    big_g: f32,
     theta: f32,
 
-    pub fn init(alloc: std.mem.Allocator, scale: f32, gravitational_constant: f32, theta: f32) Quadtree {
+    pub fn init(alloc: std.mem.Allocator, scale: f32, big_g: f32, theta: f32) Quadtree {
         return Quadtree{
             .nodes = std.AutoArrayHashMap(Coord, Node).init(alloc),
             .particles = std.ArrayList(Particle).init(alloc),
             .scale = scale,
-            .gravitational_constant = gravitational_constant,
+            .big_g = big_g,
             .theta = theta,
         };
     }
@@ -152,7 +152,7 @@ pub const Quadtree = struct {
             .leaf => |index| {
                 if (std.meta.eql(coord, particle.node)) return @Vector(2, f32){ 0.0, 0.0 };
                 const other_particle = self.particles.items[index];
-                return particle.force(other_particle.position, other_particle.mass, self.gravitational_constant);
+                return particle.force(other_particle.position, other_particle.mass, self.big_g);
             },
             .trunk => |data| {
                 const center_of_mass = data.weighted_sum / @splat(2, data.total_mass);
@@ -163,7 +163,7 @@ pub const Quadtree = struct {
                     for (coord.children()) |child| total += self.forces(child, particle);
                     return total;
                 } else {
-                    return particle.force(center_of_mass, data.total_mass, self.gravitational_constant);
+                    return particle.force(center_of_mass, data.total_mass, self.big_g);
                 }
             },
         }
