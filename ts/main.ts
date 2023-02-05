@@ -142,10 +142,10 @@ setupWasm(returnError, returnOk).then(async (w) => {
         ],
       },
     },
-    ["view", "quadtreeLimits"],
+    ["view", "scale"],
   );
   gl.useProgram(nodesPipeline.program);
-  gl.uniform1f(nodesPipeline.uniforms.quadtreeLimits, wasm.quadtreeLimits());
+  gl.uniform1f(nodesPipeline.uniforms.scale, 1024.0);
 
   gl.bindBuffer(gl.ARRAY_BUFFER, nodesPipeline.buffers.vertices);
   gl.bufferData(
@@ -162,6 +162,15 @@ setupWasm(returnError, returnOk).then(async (w) => {
 
   setupControls(canvas);
 
-  wasm.init(BigInt(Math.random() * 2 ** 64));
+  wasm.init(1024.0, 1.0, 0.5);
+  for (let i = 0; i < 1000; i++) {
+    wasm.insert(
+      Math.random() * 200.0 - 100.0,
+      Math.random() * 200.0 - 100.0,
+      Math.random() - 0.5,
+      Math.random() - 0.5,
+      1.0,
+    );
+  }
   wasm.step(1.0 / 60.0);
 });

@@ -1,5 +1,4 @@
 const std = @import("std");
-const consts = @import("consts.zig");
 const utils = @import("utils.zig");
 const Coord = @import("quadtree.zig").Coord;
 const Quadtree = @import("quadtree.zig").Quadtree;
@@ -28,11 +27,10 @@ pub const Particle = struct {
     /// position according to Newton's law of universal gravitation. This mass
     /// can either be another `Particle` or the generalized center of mass from
     /// a `Quadtree` cell.
-    pub fn force(self: Particle, position: @Vector(2, f32), mass: f32) @Vector(2, f32) {
+    pub fn force(self: Particle, position: @Vector(2, f32), mass: f32, gravitational_constant: f32) @Vector(2, f32) {
         const distance = utils.length(position - self.position);
         const direction = (position - self.position) / @splat(2, distance);
-        return direction * @splat(2, consts.GRAVITATIONAL_CONSTANT *
-            (self.mass * mass) / (distance * distance));
+        return direction * @splat(2, gravitational_constant * (self.mass * mass) / (distance * distance));
     }
 
     /// Updates the particle's position via velocity Verlet integration.
@@ -55,8 +53,8 @@ test "particle force" {
     defer particles.deinit();
     var i: usize = 0;
     while (i < 5000) : (i += 1) {
-        const x = rng.float(f32) * consts.QUADTREE_LIMITS;
-        const y = rng.float(f32) * consts.QUADTREE_LIMITS;
+        const x = rng.float(f32);
+        const y = rng.float(f32);
         try particles.append(Particle.new(.{ x, y }, .{ 0.0, 0.0 }, 0.0));
     }
 
@@ -65,7 +63,7 @@ test "particle force" {
     for (particles.items) |a, j| {
         for (particles.items) |b, k| {
             if (j == k) continue;
-            forces += a.force(b.position, b.mass);
+            forces += a.force(b.position, b.mass, 1.0);
         }
     }
     try std.testing.expectEqual(@Vector(2, f32){ 0.0, 0.0 }, forces);

@@ -10,8 +10,11 @@ pub fn main() !void {
     var steps = try std.fmt.parseUnsigned(usize, std.os.getenv("STEPS").?, 10);
     const spread = try std.fmt.parseFloat(f32, std.os.getenv("SPREAD").?);
     const speed = try std.fmt.parseFloat(f32, std.os.getenv("SPEED").?);
+    const scale = try std.fmt.parseFloat(f32, std.os.getenv("SCALE").?);
+    const gravitational_constant = try std.fmt.parseFloat(f32, std.os.getenv("GRAVITATIONAL_CONSTANT").?);
+    const theta = try std.fmt.parseFloat(f32, std.os.getenv("THETA").?);
 
-    var quadtree = Quadtree.init(allocator.allocator());
+    var quadtree = Quadtree.init(allocator.allocator(), scale, gravitational_constant, theta);
     defer quadtree.deinit();
 
     var random = std.rand.DefaultPrng.init(0);

@@ -5,7 +5,7 @@ precision highp float;
 flat in ivec2 v_position;
 flat in uint v_depth;
 
-uniform float quadtreeLimits;
+uniform float scale;
 
 out vec4 out_color;
 

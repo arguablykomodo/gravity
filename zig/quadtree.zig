@@ -1,5 +1,4 @@
 const std = @import("std");
-const consts = @import("consts.zig");
 const utils = @import("utils.zig");
 const Particle = @import("particle.zig").Particle;
 
@@ -27,23 +26,23 @@ pub const Coord = struct {
         return divided + (1 - (divided & 1));
     }
 
-    fn isInside(self: Coord, vec: @Vector(2, f32)) bool {
+    fn isInside(self: Coord, vec: @Vector(2, f32), scale: f32) bool {
         const depth = std.math.pow(f32, 2, @intToFloat(f32, self.depth));
         const c0 = @Vector(2, f32){
-            @intToFloat(f32, self.x - 1) / depth * consts.QUADTREE_LIMITS,
-            @intToFloat(f32, self.y - 1) / depth * consts.QUADTREE_LIMITS,
+            @intToFloat(f32, self.x - 1) / depth * scale,
+            @intToFloat(f32, self.y - 1) / depth * scale,
         };
         const c1 = @Vector(2, f32){
-            @intToFloat(f32, self.x + 1) / depth * consts.QUADTREE_LIMITS,
-            @intToFloat(f32, self.y + 1) / depth * consts.QUADTREE_LIMITS,
+            @intToFloat(f32, self.x + 1) / depth * scale,
+            @intToFloat(f32, self.y + 1) / depth * scale,
         };
         // Acts inclusively on the negative corners to handle the edge case of
         // a position right in the middle between nodes.
         return @reduce(.And, vec >= c0) and @reduce(.And, vec < c1);
     }
 
-    fn width(self: Coord) f32 {
-        return consts.QUADTREE_LIMITS / std.math.pow(f32, 2, @intToFloat(f32, self.depth) - 1.0);
+    fn width(self: Coord, scale: f32) f32 {
+        return scale / std.math.pow(f32, 2, @intToFloat(f32, self.depth) - 1.0);
     }
 
     const ROOT = Coord{ .x = 0, .y = 0, .depth = 0 };
@@ -62,11 +61,17 @@ const Node = union(enum) {
 pub const Quadtree = struct {
     nodes: std.AutoArrayHashMap(Coord, Node),
     particles: std.ArrayList(Particle),
+    scale: f32,
+    gravitational_constant: f32,
+    theta: f32,
 
-    pub fn init(alloc: std.mem.Allocator) Quadtree {
+    pub fn init(alloc: std.mem.Allocator, scale: f32, gravitational_constant: f32, theta: f32) Quadtree {
         return Quadtree{
             .nodes = std.AutoArrayHashMap(Coord, Node).init(alloc),
             .particles = std.ArrayList(Particle).init(alloc),
+            .scale = scale,
+            .gravitational_constant = gravitational_constant,
+            .theta = theta,
         };
     }
 
@@ -92,7 +97,7 @@ pub const Quadtree = struct {
                 data.weighted_sum += particle.position * @splat(2, particle.mass);
                 data.total_mass += particle.mass;
                 const child = for (coord.children()) |child| {
-                    if (child.isInside(particle.position)) break child;
+                    if (child.isInside(particle.position, self.scale)) break child;
                 } else unreachable;
                 try self.reinsert(index, child);
             },
@@ -147,18 +152,18 @@ pub const Quadtree = struct {
             .leaf => |index| {
                 if (std.meta.eql(coord, particle.node)) return @Vector(2, f32){ 0.0, 0.0 };
                 const other_particle = self.particles.items[index];
-                return particle.force(other_particle.position, other_particle.mass);
+                return particle.force(other_particle.position, other_particle.mass, self.gravitational_constant);
             },
             .trunk => |data| {
                 const center_of_mass = data.weighted_sum / @splat(2, data.total_mass);
                 const distance = utils.length(center_of_mass - particle.position);
-                const quotient = coord.width() / distance;
-                if (quotient > consts.QUADTREE_THETA) {
+                const quotient = coord.width(self.scale) / distance;
+                if (quotient > self.theta) {
                     var total = @Vector(2, f32){ 0.0, 0.0 };
                     for (coord.children()) |child| total += self.forces(child, particle);
                     return total;
                 } else {
-                    return particle.force(center_of_mass, data.total_mass);
+                    return particle.force(center_of_mass, data.total_mass, self.gravitational_constant);
                 }
             },
         }
@@ -176,9 +181,9 @@ pub const Quadtree = struct {
             const old_position = particle.position;
             particle.updatePosition(dt);
             if (particle.node.depth > 0) self.changeSum(particle.node.parent(), (particle.position - old_position) * @splat(2, particle.mass));
-            if (!particle.node.isInside(particle.position)) {
+            if (!particle.node.isInside(particle.position, self.scale)) {
                 self.remove(i);
-                if (Coord.ROOT.isInside(particle.position)) {
+                if (Coord.ROOT.isInside(particle.position, self.scale)) {
                     try self.reinsert(i, Coord.ROOT);
                 } else {
                     self.delete(i);
@@ -196,13 +201,13 @@ test "quadtree insert/remove/step" {
     var random = std.rand.DefaultPrng.init(0);
     const rng = random.random();
 
-    var quadtree = Quadtree.init(std.testing.allocator);
+    var quadtree = Quadtree.init(std.testing.allocator, 1024.0, 1.0, 0.5);
     defer quadtree.deinit();
 
     var i: usize = 0;
     while (i < 1000) : (i += 1) {
-        const x = (rng.float(f32) * 2.0 - 1.0) * consts.QUADTREE_LIMITS;
-        const y = (rng.float(f32) * 2.0 - 1.0) * consts.QUADTREE_LIMITS;
+        const x = (rng.float(f32) * 2.0 - 1.0) * quadtree.scale;
+        const y = (rng.float(f32) * 2.0 - 1.0) * quadtree.scale;
         try quadtree.insert(Particle.new(.{ x, y }, .{ 0.0, 0.0 }, 1.0));
     }
 

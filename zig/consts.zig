@@ -1,8 +1,0 @@
-pub const QUADTREE_LIMITS = 1024.0;
-pub const QUADTREE_THETA = 0.5;
-
-pub const GRAVITATIONAL_CONSTANT = 1.0;
-
-pub const INITIAL_PARTICLES = 1000;
-pub const DISK_SD = 100.0;
-pub const ANGULAR_VELOCITY = 0.01;

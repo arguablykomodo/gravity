@@ -2,9 +2,9 @@ export interface Wasm {
   memory: WebAssembly.Memory;
   sizeOfParticle(): number;
   sizeOfNode(): number;
-  quadtreeLimits(): number;
-  init(seed: BigInt): void;
+  init(scale: number, gravitationalConstant: number, theta: number): void;
   deinit(): void;
+  insert(x: number, y: number, vx: number, vy: number, mass: number): void;
   step(dt: number): void;
 }
 

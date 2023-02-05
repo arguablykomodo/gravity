@@ -1,6 +1,4 @@
 const std = @import("std");
-const consts = @import("consts.zig");
-const disk = @import("disk.zig").disk;
 const Quadtree = @import("quadtree.zig").Quadtree;
 const Particle = @import("particle.zig").Particle;
 const Coord = @import("quadtree.zig").Coord;
@@ -9,10 +7,10 @@ var quadtree: Quadtree = undefined;
 
 extern fn returnError(ptr: [*:0]const u8) void;
 extern fn returnOk(
-    particlesPtr: [*]Particle,
-    particlesLen: usize,
-    nodesPtr: [*]Coord,
-    nodesLen: usize,
+    particles_ptr: [*]Particle,
+    particles_len: usize,
+    nodes_ptr: [*]Coord,
+    nodes_len: usize,
 ) void;
 
 export fn sizeOfParticle() usize {
@@ -23,22 +21,20 @@ export fn sizeOfNode() usize {
     return @sizeOf(Coord);
 }
 
-export fn quadtreeLimits() f32 {
-    return consts.QUADTREE_LIMITS;
-}
-
-export fn init(seed: u64) void {
-    quadtree = Quadtree.init(std.heap.wasm_allocator);
-    if (disk(&quadtree, seed)) |_| {} else |e| returnError(@errorName(e));
+export fn init(scale: f32, gravitational_constant: f32, theta: f32) void {
+    quadtree = Quadtree.init(std.heap.wasm_allocator, scale, gravitational_constant, theta);
 }
 
 export fn deinit() void {
     quadtree.deinit();
 }
 
+export fn insert(x: f32, y: f32, vx: f32, vy: f32, mass: f32) void {
+    quadtree.insert(Particle.new(.{ x, y }, .{ vx, vy }, mass)) catch |e| returnError(@errorName(e));
+}
+
 export fn step(dt: f32) void {
-    if (quadtree.step(dt)) |_| {
-        const keys = quadtree.nodes.keys();
-        returnOk(quadtree.particles.items.ptr, quadtree.particles.items.len, keys.ptr, keys.len);
-    } else |e| returnError(@errorName(e));
+    quadtree.step(dt) catch |e| returnError(@errorName(e));
+    const keys = quadtree.nodes.keys();
+    returnOk(quadtree.particles.items.ptr, quadtree.particles.items.len, keys.ptr, keys.len);
 }
