@@ -175,7 +175,7 @@ pub const Quadtree = struct {
             const particle = &self.particles.items[i];
             const old_position = particle.position;
             particle.updatePosition(dt);
-            self.changeSum(particle.node.parent(), (particle.position - old_position) * @splat(2, particle.mass));
+            if (particle.node.depth > 0) self.changeSum(particle.node.parent(), (particle.position - old_position) * @splat(2, particle.mass));
             if (!particle.node.isInside(particle.position)) {
                 self.remove(i);
                 if (Coord.ROOT.isInside(particle.position)) {
