@@ -6,12 +6,6 @@ const Coord = @import("quadtree.zig").Coord;
 var quadtree: Quadtree = undefined;
 
 extern fn returnError(ptr: [*:0]const u8) void;
-extern fn returnOk(
-    particles_ptr: [*]Particle,
-    particles_len: usize,
-    nodes_ptr: [*]Coord,
-    nodes_len: usize,
-) void;
 
 export const sizeOfParticle = @as(u32, @sizeOf(Particle));
 export const sizeOfNode = @as(u32, @sizeOf(Coord));
@@ -35,6 +29,15 @@ export fn insert(x: f32, y: f32, vx: f32, vy: f32, mass: f32) void {
 
 export fn step(dt: f32) void {
     quadtree.step(dt) catch |e| returnError(@errorName(e));
+}
+
+extern fn returnParticles(ptr: [*]Particle, len: usize) void;
+export fn getParticles() void {
+    returnParticles(quadtree.particles.items.ptr, quadtree.particles.items.len);
+}
+
+extern fn returnNodes(ptr: [*]Coord, len: usize) void;
+export fn getNodes() void {
     const keys = quadtree.nodes.keys();
-    returnOk(quadtree.particles.items.ptr, quadtree.particles.items.len, keys.ptr, keys.len);
+    returnNodes(keys.ptr, keys.len);
 }

@@ -18,71 +18,42 @@ const gl = canvas.getContext("webgl2")!;
 if (gl === null) throw new Error("Browser does not support WebGL");
 
 let wasm: Wasm;
-let sizeOfParticle: number;
-let sizeOfNode: number;
-
-let particlesPipeline: Pipeline;
-let nodesPipeline: Pipeline;
 
 function returnError(ptr: number) {
   const errorBuffer = new Uint8Array(wasm.memory.buffer, ptr);
   let i = 0;
   while (errorBuffer[i] !== 0) i += 1;
   const error = new TextDecoder().decode(errorBuffer.slice(0, i));
-  console.log(error);
+  console.error(error);
   alert(error);
 }
 
-function returnOk(
-  particlesPtr: number,
-  particlesLen: number,
-  nodesPtr: number,
-  nodesLen: number,
-) {
-  const particles = new DataView(
-    wasm.memory.buffer,
-    particlesPtr,
-    particlesLen * sizeOfParticle,
-  );
+let particlesPipeline: Pipeline;
+let sizeOfParticle: number;
+let particleCount: number;
+function returnParticles(ptr: number, len: number) {
+  particleCount = len;
+  const particles = new DataView(wasm.memory.buffer, ptr, len * sizeOfParticle);
   gl.bindBuffer(gl.ARRAY_BUFFER, particlesPipeline.buffers.particles);
   gl.bufferData(gl.ARRAY_BUFFER, particles, gl.DYNAMIC_DRAW);
-  const nodes = new DataView(
-    wasm.memory.buffer,
-    nodesPtr,
-    nodesLen * sizeOfNode,
-  );
-  gl.bindBuffer(gl.ARRAY_BUFFER, nodesPipeline.buffers.nodes);
-  gl.bufferData(gl.ARRAY_BUFFER, nodes, gl.DYNAMIC_DRAW);
-
-  if (
-    canvas.width !== canvas.clientWidth ||
-    canvas.height !== canvas.clientHeight
-  ) {
-    canvas.width = canvas.clientWidth;
-    canvas.height = canvas.clientHeight;
-    gl.viewport(0, 0, canvas.width, canvas.height);
-  }
-
-  const finalMatrix = multiply(
-    viewMatrix,
-    scaling(canvas.height / canvas.width, 1),
-  );
-
-  gl.clear(gl.COLOR_BUFFER_BIT);
-  renderPipeline(gl, particlesPipeline, particlesLen, finalMatrix);
-  renderPipeline(gl, nodesPipeline, nodesLen, finalMatrix);
-  requestAnimationFrame(() => wasm.step(dtInput.valueAsNumber));
 }
 
-setupWasm(returnError, returnOk).then(async (w) => {
+let nodesPipeline: Pipeline;
+let sizeOfNode: number;
+let nodeCount: number;
+function returnNodes(ptr: number, len: number) {
+  nodeCount = len;
+  const nodes = new DataView(wasm.memory.buffer, ptr, len * sizeOfNode);
+  gl.bindBuffer(gl.ARRAY_BUFFER, nodesPipeline.buffers.nodes);
+  gl.bufferData(gl.ARRAY_BUFFER, nodes, gl.DYNAMIC_DRAW);
+}
+
+setupWasm(returnError, returnParticles, returnNodes).then(async (w) => {
   wasm = w;
+
   const globalView = new DataView(wasm.memory.buffer);
   sizeOfParticle = globalView.getUint32(wasm.sizeOfParticle.value, true);
   sizeOfNode = globalView.getUint32(wasm.sizeOfNode.value, true);
-
-  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-  gl.enable(gl.BLEND);
-  gl.clearColor(0.05, 0.05, 0.08, 0);
 
   const [particleVertex, particleFragment, nodeVertex, nodeFragment] =
     await Promise.all(
@@ -117,6 +88,7 @@ setupWasm(returnError, returnOk).then(async (w) => {
     ["view"],
   );
 
+  gl.useProgram(particlesPipeline.program);
   gl.bindBuffer(gl.ARRAY_BUFFER, particlesPipeline.buffers.vertices);
   gl.bufferData(
     gl.ARRAY_BUFFER,
@@ -155,8 +127,8 @@ setupWasm(returnError, returnOk).then(async (w) => {
     },
     ["view", "scale"],
   );
-  gl.useProgram(nodesPipeline.program);
 
+  gl.useProgram(nodesPipeline.program);
   gl.bindBuffer(gl.ARRAY_BUFFER, nodesPipeline.buffers.vertices);
   gl.bufferData(
     gl.ARRAY_BUFFER,
@@ -170,10 +142,13 @@ setupWasm(returnError, returnOk).then(async (w) => {
     gl.STATIC_DRAW,
   );
 
-  setupControls(canvas);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.enable(gl.BLEND);
+  gl.clearColor(0.05, 0.05, 0.08, 1.0);
 
+  setupControls(canvas);
   init();
-  wasm.step(dtInput.valueAsNumber);
+  step();
 });
 
 function init() {
@@ -194,6 +169,31 @@ function init() {
       1.0,
     );
   }
+}
+
+function step() {
+  wasm.step(dtInput.valueAsNumber);
+
+  if (
+    canvas.width !== canvas.clientWidth ||
+    canvas.height !== canvas.clientHeight
+  ) {
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+
+  const finalMatrix = multiply(
+    viewMatrix,
+    scaling(canvas.height / canvas.width, 1),
+  );
+
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  wasm.getParticles();
+  renderPipeline(gl, particlesPipeline, particleCount, finalMatrix);
+  wasm.getNodes();
+  renderPipeline(gl, nodesPipeline, nodeCount, finalMatrix);
+  requestAnimationFrame(step);
 }
 
 function setParameters() {
