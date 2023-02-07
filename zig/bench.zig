@@ -20,7 +20,7 @@ pub fn main() !void {
     var random = std.rand.DefaultPrng.init(0);
     const rng = random.random();
     while (particles > 0) : (particles -= 1) {
-        try quadtree.insert(Particle.new(
+        try quadtree.insertParticle(Particle.new(
             .{ (rng.float(f32) * 2.0 - 1.0) * spread, (rng.float(f32) * 2.0 - 1.0) * spread },
             .{ (rng.float(f32) * 2.0 - 1.0) * speed, (rng.float(f32) * 2.0 - 1.0) * speed },
             1.0,

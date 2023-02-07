@@ -1,18 +1,17 @@
 const std = @import("std");
 const utils = @import("utils.zig");
-const Coord = @import("quadtree.zig").Coord;
 const Quadtree = @import("quadtree.zig").Quadtree;
 
 /// Represents an idealized point particle, subject to Newton's law of motion.
-pub const Particle = struct {
+pub const Particle = packed struct {
     position: @Vector(2, f32),
     velocity: @Vector(2, f32),
     acceleration: @Vector(2, f32),
     mass: f32,
-    node: Coord,
+    node: *Quadtree.Node,
 
     /// Creates a new `Particle`. The `node` property must be set afterwards by
-    /// a matching `Quadtree.insert` call.
+    /// a matching `Quadtree.insertParticle` call.
     pub fn new(position: @Vector(2, f32), velocity: @Vector(2, f32), mass: f32) Particle {
         return .{
             .position = position,

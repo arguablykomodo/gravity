@@ -114,8 +114,8 @@ setupWasm(returnError, returnParticles, returnNodes).then(async (w) => {
     gl,
     nodeVertex,
     nodeFragment,
-    gl.LINE_LOOP,
-    4,
+    gl.TRIANGLES,
+    6,
     {
       vertices: {
         size: Float32Array.BYTES_PER_ELEMENT * 2,
@@ -126,8 +126,10 @@ setupWasm(returnError, returnParticles, returnNodes).then(async (w) => {
         size: sizeOfNode,
         divisor: 1,
         attributes: [
-          { name: "position", type: gl.INT, size: 2 },
-          { name: "depth", type: gl.UNSIGNED_INT, size: 1 },
+          { name: "center", type: gl.FLOAT, size: 2 },
+          { name: "radius", type: gl.FLOAT, size: 1 },
+          { name: "totalMass", type: gl.FLOAT, size: 1 },
+          { name: "weightedSum", type: gl.FLOAT, size: 2 },
         ],
       },
     },
@@ -141,9 +143,11 @@ setupWasm(returnError, returnParticles, returnNodes).then(async (w) => {
     // deno-fmt-ignore
     new Float32Array([
       -1.0, -1.0,
-      +1.0, -1.0,
-      +1.0, +1.0,
       -1.0, +1.0,
+      +1.0, -1.0,
+      +1.0, -1.0,
+      -1.0, +1.0,
+      +1.0, +1.0,
     ]),
     gl.STATIC_DRAW,
   );
@@ -158,6 +162,7 @@ setupWasm(returnError, returnParticles, returnNodes).then(async (w) => {
 });
 
 function init() {
+  gl.useProgram(nodesPipeline.program);
   gl.uniform1f(nodesPipeline.uniforms.scale, scaleInput.valueAsNumber);
   wasm.init(
     scaleInput.valueAsNumber,
@@ -195,13 +200,13 @@ function step() {
   );
 
   gl.clear(gl.COLOR_BUFFER_BIT);
-  if (drawParticlesInput.checked) {
-    wasm.getParticles();
-    renderPipeline(gl, particlesPipeline, particleCount, finalMatrix);
-  }
   if (drawQuadtreeInput.checked) {
     wasm.getNodes();
     renderPipeline(gl, nodesPipeline, nodeCount, finalMatrix);
+  }
+  if (drawParticlesInput.checked) {
+    wasm.getParticles();
+    renderPipeline(gl, particlesPipeline, particleCount, finalMatrix);
   }
   requestAnimationFrame(step);
 }
