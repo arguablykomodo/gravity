@@ -1,5 +1,4 @@
 const std = @import("std");
-const utils = @import("utils.zig");
 const Particle = @import("particle.zig").Particle;
 
 pub const Quadtree = struct {
@@ -179,7 +178,8 @@ pub const Quadtree = struct {
             },
             .trunk => |data| {
                 const center_of_mass = data.weighted_sum / @splat(2, data.total_mass);
-                const distance = utils.length(center_of_mass - particle.position);
+                const position_diff = center_of_mass - particle.position;
+                const distance = @sqrt(@reduce(.Add, position_diff * position_diff));
                 const quotient = node.radius * 2.0 / distance;
                 if (quotient > self.theta) {
                     var total = @Vector(2, f32){ 0.0, 0.0 };

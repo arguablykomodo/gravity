@@ -1,5 +1,4 @@
 const std = @import("std");
-const utils = @import("utils.zig");
 const Quadtree = @import("quadtree.zig").Quadtree;
 
 pub const Particle = packed struct {
@@ -22,7 +21,8 @@ pub const Particle = packed struct {
     }
 
     pub fn force(self: Particle, position: @Vector(2, f32), mass: f32, big_g: f32) @Vector(2, f32) {
-        const distance = utils.length(position - self.position);
+        const position_diff = position - self.position;
+        const distance = @sqrt(@reduce(.Add, position_diff * position_diff));
         const direction = (position - self.position) / @splat(2, distance);
         return direction * @splat(2, big_g * (self.mass * mass) / (distance * distance));
     }
