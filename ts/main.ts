@@ -18,6 +18,7 @@ const scaleInput = document.getElementById("scale") as HTMLInputElement;
 const particlesInput = document.getElementById("particles") as HTMLInputElement;
 const spreadInput = document.getElementById("spread") as HTMLInputElement;
 const speedInput = document.getElementById("speed") as HTMLInputElement;
+const angularSpeedInput = document.getElementById("angularSpeed") as HTMLInputElement;
 const restartButton = document.getElementById("restart") as HTMLButtonElement;
 
 const gl = canvas.getContext("webgl2")!;
@@ -170,13 +171,14 @@ function init() {
     thetaInput.valueAsNumber,
   );
   for (let i = 0; i < particlesInput.valueAsNumber; i++) {
-    const r = Math.sqrt(Math.random()) * spreadInput.valueAsNumber;
+    const r = Math.random() * spreadInput.valueAsNumber;
     const a = Math.random() * Math.PI * 2.0;
+    const angular = a + Math.PI / 2.0;
     wasm.insert(
       Math.cos(a) * r,
       Math.sin(a) * r,
-      (Math.random() * 2.0 - 1.0) * speedInput.valueAsNumber,
-      (Math.random() * 2.0 - 1.0) * speedInput.valueAsNumber,
+      (Math.random() * 2.0 - 1.0) * speedInput.valueAsNumber + Math.cos(angular) * r / spreadInput.valueAsNumber * angularSpeedInput.valueAsNumber,
+      (Math.random() * 2.0 - 1.0) * speedInput.valueAsNumber + Math.sin(angular) * r / spreadInput.valueAsNumber * angularSpeedInput.valueAsNumber,
       1.0,
     );
   }

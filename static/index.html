@@ -17,7 +17,7 @@
         <span>Gravity Simulation Coarseness</span>
         <input id="theta" type="number" min="0" step="0.1" value="0.5"></input>
         <span>Timestep</span>
-        <input id="dt" type="number" min="0" step="0.01" value="0.016"></input>
+        <input id="dt" type="number" min="0" step="0.01" value="0.5"></input>
         <label for="drawParticles">Render Particles</label>
         <input id="drawParticles" type="checkbox" checked></input>
         <label for="drawQuadtree">Render Quadtree</label>
@@ -30,11 +30,13 @@
         <span>Simulation Limits</span>
         <input id="scale" type="number" min="1" max="2147483647" value="1024"></input>
         <span>Initial Particles</span>
-        <input id="particles" type="number" min="1" max="2147483647" value="1000"></input>
+        <input id="particles" type="number" min="1" max="2147483647" value="10000"></input>
         <span>Initial Particle Spread</span>
-        <input id="spread" type="number" min="1" max="2147483647" value="100"></input>
-        <span>Initial Particle Speed</span>
-        <input id="speed" type="number" min="0" max="2147483647" value="1"></input>
+        <input id="spread" type="number" min="1" max="2147483647" value="512"></input>
+        <span>Random Particle Speed</span>
+        <input id="speed" type="number" min="0" max="2147483647" value="5"></input>
+        <span>Angular Particle Speed</span>
+        <input id="angularSpeed" type="number" min="0" max="2147483647" value="5"></input>
       </div>
     </details>
     <button id="restart">Restart Simulation</button>

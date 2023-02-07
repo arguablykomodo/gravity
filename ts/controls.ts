@@ -1,6 +1,6 @@
 import { multiply, scaling, translation } from "./matrix.ts";
 
-export let viewMatrix = scaling(0.1, 0.1);
+export let viewMatrix = scaling(1.0 / 256.0, 1.0 / 256.0);
 
 function updateView(
   pixels: { x: number; y: number },
@@ -16,7 +16,7 @@ function updateView(
 export function setupControls(canvas: HTMLCanvasElement) {
   const pixelTranslation = { x: 0, y: 0 };
   let isMoving = false;
-  let zoom = 0.1;
+  let zoom = 1.0 / 256.0;
 
   canvas.addEventListener("mousedown", () => isMoving = true);
   canvas.addEventListener("mouseup", () => isMoving = false);
