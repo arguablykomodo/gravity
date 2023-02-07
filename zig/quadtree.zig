@@ -209,7 +209,7 @@ pub const Quadtree = struct {
                 }
             }
         }
-        for (self.particles.items) |*particle| particle.updateForces(self.forces(particle), dt);
+        for (self.particles.items) |*particle| particle.updateVelocity(self.forces(particle), dt);
     }
 };
 

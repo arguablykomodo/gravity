@@ -31,7 +31,8 @@ pub const Particle = packed struct {
         self.position += self.velocity * @splat(2, dt) + self.acceleration * @splat(2, 0.5 * dt * dt);
     }
 
-    pub fn updateForces(self: *Particle, acceleration: @Vector(2, f32), dt: f32) void {
+    pub fn updateVelocity(self: *Particle, forces: @Vector(2, f32), dt: f32) void {
+        const acceleration = forces / @splat(2, self.mass);
         self.velocity += (self.acceleration + acceleration) * @splat(2, 0.5 * dt);
         self.acceleration = acceleration;
     }
@@ -78,7 +79,7 @@ test "particle" {
                 if (i == j) continue;
                 forces += particle.force(other_particle.position, other_particle.mass, 1.0);
             }
-            particle.updateForces(forces, dt);
+            particle.updateVelocity(forces, dt);
         }
     }
 
