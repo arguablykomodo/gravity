@@ -37,25 +37,65 @@ pub const Particle = packed struct {
     }
 };
 
-test "particle force" {
-    var random = std.rand.DefaultPrng.init(0);
-    const rng = random.random();
-    var particles = std.ArrayList(Particle).init(std.testing.allocator);
-    defer particles.deinit();
-    var i: usize = 0;
-    while (i < 5000) : (i += 1) {
-        const x = rng.float(f32);
-        const y = rng.float(f32);
-        try particles.append(Particle.new(.{ x, y }, .{ 0.0, 0.0 }, 0.0));
-    }
+test "particle" {
+    // Figure eight orbit, taken from https://arxiv.org/abs/math/0011268
+    const period: f32 = 6.32591398;
+    const p = @Vector(2, f32){ 0.97000436, -0.24308753 };
+    const v = @Vector(2, f32){ -0.93240737, -0.86473146 };
+
+    const p0 = p;
+    const p1 = -p;
+    const p2 = @Vector(2, f32){ 0.0, 0.0 };
+
+    const v0 = -v / @Vector(2, f32){ 2.0, 2.0 };
+    const v1 = -v / @Vector(2, f32){ 2.0, 2.0 };
+    const v2 = v;
+
+    var particles = [_]Particle{
+        Particle.new(p0, v0, 1.0),
+        Particle.new(p1, v1, 1.0),
+        Particle.new(p2, v2, 1.0),
+    };
 
     // The forces between all bodies should cancel out, due to Newton's third law.
     var forces = @Vector(2, f32){ 0.0, 0.0 };
-    for (particles.items) |a, j| {
-        for (particles.items) |b, k| {
-            if (j == k) continue;
+    for (particles) |a, i| {
+        for (particles) |b, j| {
+            if (i == j) continue;
             forces += a.force(b.position, b.mass, 1.0);
         }
     }
     try std.testing.expectEqual(@Vector(2, f32){ 0.0, 0.0 }, forces);
+
+    // Figure eight orbit should be periodic
+    const dt = 1e-3;
+    var time: f32 = 0;
+    while (time < period) : (time += dt) {
+        for (particles) |*particle| particle.updatePosition(dt);
+        for (particles) |*particle, i| {
+            forces = @Vector(2, f32){ 0.0, 0.0 };
+            for (particles) |other_particle, j| {
+                if (i == j) continue;
+                forces += particle.force(other_particle.position, other_particle.mass, 1.0);
+            }
+            particle.updateForces(forces, dt);
+        }
+    }
+
+    const tolerance = 1e-3;
+
+    try std.testing.expectApproxEqAbs(p0[0], particles[0].position[0], tolerance);
+    try std.testing.expectApproxEqAbs(p0[1], particles[0].position[1], tolerance);
+    try std.testing.expectApproxEqAbs(v0[0], particles[0].velocity[0], tolerance);
+    try std.testing.expectApproxEqAbs(v0[1], particles[0].velocity[1], tolerance);
+
+    try std.testing.expectApproxEqAbs(p1[0], particles[1].position[0], tolerance);
+    try std.testing.expectApproxEqAbs(p1[1], particles[1].position[1], tolerance);
+    try std.testing.expectApproxEqAbs(v1[0], particles[1].velocity[0], tolerance);
+    try std.testing.expectApproxEqAbs(v1[1], particles[1].velocity[1], tolerance);
+
+    try std.testing.expectApproxEqAbs(p2[0], particles[2].position[0], tolerance);
+    try std.testing.expectApproxEqAbs(p2[1], particles[2].position[1], tolerance);
+    try std.testing.expectApproxEqAbs(v2[0], particles[2].velocity[0], tolerance);
+    try std.testing.expectApproxEqAbs(v2[1], particles[2].velocity[1], tolerance);
 }
