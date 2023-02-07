@@ -29,6 +29,8 @@ pub const Quadtree = struct {
         pub fn isInside(self: Node, position: @Vector(2, f32)) bool {
             const corner_0 = self.center - @splat(2, self.radius);
             const corner_1 = self.center + @splat(2, self.radius);
+            // Inclusive on the negative corner to handle the edge case of a
+            // particle being right in the middle.
             return @reduce(.And, position >= corner_0) and @reduce(.And, position < corner_1);
         }
     };

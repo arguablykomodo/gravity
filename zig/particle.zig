@@ -2,7 +2,6 @@ const std = @import("std");
 const utils = @import("utils.zig");
 const Quadtree = @import("quadtree.zig").Quadtree;
 
-/// Represents an idealized point particle, subject to Newton's law of motion.
 pub const Particle = packed struct {
     position: @Vector(2, f32),
     velocity: @Vector(2, f32),
@@ -10,8 +9,8 @@ pub const Particle = packed struct {
     mass: f32,
     node: *Quadtree.Node,
 
-    /// Creates a new `Particle`. The `node` property must be set afterwards by
-    /// a matching `Quadtree.insertParticle` call.
+    /// The `node` property must be set afterwards by a matching
+    /// `Quadtree.insertParticle` call.
     pub fn new(position: @Vector(2, f32), velocity: @Vector(2, f32), mass: f32) Particle {
         return .{
             .position = position,
@@ -22,23 +21,16 @@ pub const Particle = packed struct {
         };
     }
 
-    /// Calculates the force applied on a `Particle` by another mass at a given
-    /// position according to Newton's law of universal gravitation. This mass
-    /// can either be another `Particle` or the generalized center of mass from
-    /// a `Quadtree` cell.
     pub fn force(self: Particle, position: @Vector(2, f32), mass: f32, big_g: f32) @Vector(2, f32) {
         const distance = utils.length(position - self.position);
         const direction = (position - self.position) / @splat(2, distance);
         return direction * @splat(2, big_g * (self.mass * mass) / (distance * distance));
     }
 
-    /// Updates the particle's position via velocity Verlet integration.
     pub fn updatePosition(self: *Particle, dt: f32) void {
         self.position += self.velocity * @splat(2, dt) + self.acceleration * @splat(2, 0.5 * dt * dt);
     }
 
-    /// Updates the particle's velocity and acceleration via velocity Verlet
-    /// integration.
     pub fn updateForces(self: *Particle, acceleration: @Vector(2, f32), dt: f32) void {
         self.velocity += (self.acceleration + acceleration) * @splat(2, 0.5 * dt);
         self.acceleration = acceleration;
