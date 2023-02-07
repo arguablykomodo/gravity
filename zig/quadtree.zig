@@ -169,7 +169,7 @@ pub const Quadtree = struct {
         return self.forcesRecursive(particle, self.root.?);
     }
 
-    fn forcesRecursive(self: *Quadtree, particle: *const Particle, node: *Node) @Vector(2, f32) {
+    fn forcesRecursive(self: *Quadtree, particle: *const Particle, node: *const Node) @Vector(2, f32) {
         switch (node.data) {
             .leaf => |other_particle_index| {
                 if (particle.node == node) return @Vector(2, f32){ 0.0, 0.0 };
