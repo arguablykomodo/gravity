@@ -16,6 +16,7 @@ const drawQuadtreeInput = document.getElementById(
 ) as HTMLInputElement;
 const scaleInput = document.getElementById("scale") as HTMLInputElement;
 const particlesInput = document.getElementById("particles") as HTMLInputElement;
+const particleMassInput = document.getElementById("particleMass") as HTMLInputElement;
 const spreadInput = document.getElementById("spread") as HTMLInputElement;
 const speedInput = document.getElementById("speed") as HTMLInputElement;
 const angularSpeedInput = document.getElementById("angularSpeed") as HTMLInputElement;
@@ -179,7 +180,7 @@ function init() {
       Math.sin(a) * r,
       (Math.random() * 2.0 - 1.0) * speedInput.valueAsNumber + Math.cos(angular) * r / spreadInput.valueAsNumber * angularSpeedInput.valueAsNumber,
       (Math.random() * 2.0 - 1.0) * speedInput.valueAsNumber + Math.sin(angular) * r / spreadInput.valueAsNumber * angularSpeedInput.valueAsNumber,
-      1.0,
+      particleMassInput.valueAsNumber,
     );
   }
 }
