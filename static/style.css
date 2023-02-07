@@ -3,10 +3,6 @@
 }
 
 body {
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
-
   font-family: "Cascadia Code", "Fira Mono", monospace;
   font-size: 13px;
 
@@ -17,7 +13,6 @@ body {
 
 #canvas {
   position: absolute;
-  z-index: -1;
   left: 0;
   top: 0;
   width: 100vw;
@@ -26,6 +21,9 @@ body {
 }
 
 #settings {
+  position: absolute;
+  right: 0;
+  top: 0;
   display: flex;
   flex-direction: column;
   min-width: 45ch;
