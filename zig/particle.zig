@@ -20,6 +20,10 @@ pub const Particle = packed struct {
         };
     }
 
+    pub fn radius(self: Particle) f32 {
+        return @sqrt(self.mass / std.math.pi);
+    }
+
     pub fn force(self: Particle, position: @Vector(2, f32), mass: f32, big_g: f32) @Vector(2, f32) {
         const position_diff = position - self.position;
         const distance = @sqrt(@reduce(.Add, position_diff * position_diff));
@@ -35,6 +39,26 @@ pub const Particle = packed struct {
         const acceleration = forces / @splat(2, self.mass);
         self.velocity += (self.acceleration + acceleration) * @splat(2, 0.5 * dt);
         self.acceleration = acceleration;
+    }
+
+    pub fn collides(self: Particle, other: Particle) bool {
+        const position_diff = other.position - self.position;
+        const distance = @sqrt(@reduce(.Add, position_diff * position_diff));
+        return distance < self.radius() + other.radius();
+    }
+
+    pub fn collide(self: Particle, other: Particle) Particle {
+        return .{
+            .position = (self.position * @splat(2, self.mass) +
+                other.position * @splat(2, other.mass)) /
+                @splat(2, self.mass + other.mass),
+            .velocity = (self.velocity * @splat(2, self.mass) +
+                other.velocity * @splat(2, other.mass)) /
+                @splat(2, self.mass + other.mass),
+            .acceleration = .{ 0.0, 0.0 },
+            .mass = self.mass + other.mass,
+            .node = undefined,
+        };
     }
 };
 

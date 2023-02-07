@@ -32,6 +32,14 @@ pub const Quadtree = struct {
             // particle being right in the middle.
             return @reduce(.And, position >= corner_0) and @reduce(.And, position < corner_1);
         }
+
+        pub fn collides(self: Node, particle: Particle) bool {
+            const node_0 = self.center - @splat(2, self.radius);
+            const node_1 = self.center + @splat(2, self.radius);
+            const particle_0 = particle.position - @splat(2, particle.radius());
+            const particle_1 = particle.position + @splat(2, particle.radius());
+            return @reduce(.And, node_0 < particle_1) and @reduce(.And, node_1 > particle_0);
+        }
     };
 
     alloc: std.mem.Allocator,
@@ -194,6 +202,16 @@ pub const Quadtree = struct {
         }
     }
 
+    fn collision(self: *Quadtree, particle: *const Particle, node: *const Node) ?usize {
+        return if (node.collides(particle.*)) switch (node.data) {
+            .leaf => |other_index| if (particle.node != self.particles.items[other_index].node and
+                particle.collides(self.particles.items[other_index])) other_index else null,
+            .trunk => |data| return for (data.children) |child| {
+                if (child) |child_node| if (self.collision(particle, child_node)) |result| break result;
+            } else null,
+        } else null;
+    }
+
     pub fn step(self: *Quadtree, dt: f32) !void {
         var i: usize = 0;
         while (i < self.particles.items.len) : (i +%= 1) {
@@ -207,6 +225,25 @@ pub const Quadtree = struct {
                     self.removeParticle(i);
                     i -%= 1;
                 }
+            }
+        }
+        i = 0;
+        while (i < self.particles.items.len) : (i +%= 1) {
+            const particle = &self.particles.items[i];
+            if (self.collision(particle, self.root.?)) |other_index| {
+                const new_particle = particle.collide(self.particles.items[other_index]);
+                self.removeFromTree(particle);
+                self.removeFromTree(&self.particles.items[other_index]);
+                if (other_index < i) {
+                    self.removeParticle(i);
+                    self.removeParticle(other_index);
+                    i -%= 2;
+                } else {
+                    self.removeParticle(other_index);
+                    self.removeParticle(i);
+                    i -%= 1;
+                }
+                try self.insertParticle(new_particle);
             }
         }
         for (self.particles.items) |*particle| particle.updateVelocity(self.forces(particle), dt);
