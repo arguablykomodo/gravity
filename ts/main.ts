@@ -17,6 +17,7 @@ const drawQuadtreeInput = document.getElementById(
 const scaleInput = document.getElementById("scale") as HTMLInputElement;
 const particlesInput = document.getElementById("particles") as HTMLInputElement;
 const particleMassInput = document.getElementById("particleMass") as HTMLInputElement;
+const densityInput = document.getElementById("density") as HTMLInputElement;
 const spreadInput = document.getElementById("spread") as HTMLInputElement;
 const speedInput = document.getElementById("speed") as HTMLInputElement;
 const angularSpeedInput = document.getElementById("angularSpeed") as HTMLInputElement;
@@ -172,7 +173,7 @@ function init() {
     thetaInput.valueAsNumber,
   );
   for (let i = 0; i < particlesInput.valueAsNumber; i++) {
-    const r = Math.random() * spreadInput.valueAsNumber;
+    const r = Math.pow(Math.random(), densityInput.valueAsNumber) * spreadInput.valueAsNumber;
     const a = Math.random() * Math.PI * 2.0;
     const angular = a + Math.PI / 2.0;
     wasm.insert(
