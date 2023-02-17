@@ -181,15 +181,18 @@ pub const Quadtree = struct {
     }
 
     fn forces(self: *Quadtree, particle: *const Particle) @Vector(2, f32) {
-        return self.forcesRecursive(particle, self.root.?);
+        var total = @Vector(2, f32){ 0.0, 0.0 };
+        self.forcesRecursive(particle, &total, self.root.?);
+        return total;
     }
 
-    fn forcesRecursive(self: *Quadtree, particle: *const Particle, node: *const Node) @Vector(2, f32) {
+    fn forcesRecursive(self: *Quadtree, particle: *const Particle, total: *@Vector(2, f32), node: *const Node) void {
         switch (node.data) {
             .leaf => |other_particle_index| {
-                if (particle.node == node) return @Vector(2, f32){ 0.0, 0.0 };
+                if (particle.node == node) return;
                 const other_particle = self.particles.items[other_particle_index];
-                return particle.force(other_particle.position, other_particle.mass, self.big_g);
+                total.* += particle.force(other_particle.position, other_particle.mass, self.big_g);
+                return;
             },
             .trunk => |data| {
                 const center_of_mass = data.weighted_sum / @splat(2, data.total_mass);
@@ -197,13 +200,11 @@ pub const Quadtree = struct {
                 const distance = @sqrt(@reduce(.Add, position_diff * position_diff));
                 const quotient = node.radius * 2.0 / distance;
                 if (quotient > self.theta) {
-                    var total = @Vector(2, f32){ 0.0, 0.0 };
-                    for (data.children) |child| {
-                        if (child) |child_node| total += self.forcesRecursive(particle, child_node);
-                    }
-                    return total;
+                    for (data.children) |child| if (child) |child_node| self.forcesRecursive(particle, total, child_node);
+                    return;
                 } else {
-                    return particle.force(center_of_mass, data.total_mass, self.big_g);
+                    total.* += particle.force(center_of_mass, data.total_mass, self.big_g);
+                    return;
                 }
             },
         }
