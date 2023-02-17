@@ -4,7 +4,7 @@ on:
       - master
 env:
   DENO_VERSION: v1.30.2
-  ZIG_VERSION: 0.11.0-dev.1568+c9b957c93
+  ZIG_VERSION: 0.11.0-dev.1639+438b71155
 jobs:
   test:
     runs-on: ubuntu-latest

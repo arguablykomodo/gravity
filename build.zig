@@ -24,6 +24,7 @@ pub fn build(b: *std.build.Builder) void {
     b.getInstallStep().dependOn(&static_step.step);
 
     const deno_step = b.addSystemCommand(&.{ "deno", "bundle", "--quiet", "ts/main.ts", b.pathJoin(&.{ b.install_prefix, "main.js" }) });
+    deno_step.condition = .always;
     b.getInstallStep().dependOn(&deno_step.step);
 
     const zig_tests = b.addTest(.{
