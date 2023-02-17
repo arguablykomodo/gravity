@@ -72,9 +72,16 @@ pub const Quadtree = struct {
         self.alloc.destroy(node);
     }
 
+    fn withinBounds(self: Quadtree, particle: Particle) bool {
+        return @reduce(.And, particle.position >= @splat(2, -self.scale)) and
+            @reduce(.And, particle.position < @splat(2, self.scale));
+    }
+
     pub fn insertParticle(self: *Quadtree, particle: Particle) !void {
-        try self.particles.append(particle);
-        try self.insertIntoTree(self.particles.items.len - 1);
+        if (self.withinBounds(particle)) {
+            try self.particles.append(particle);
+            try self.insertIntoTree(self.particles.items.len - 1);
+        }
     }
 
     fn insertIntoTree(self: *Quadtree, particle_index: usize) !void {
@@ -221,7 +228,7 @@ pub const Quadtree = struct {
             if (particle.node.is_child) |data| data.parent.update((particle.position - old_position) * @splat(2, particle.mass), 0.0);
             if (!particle.node.isInside(particle.position)) {
                 self.removeFromTree(particle);
-                if (self.root.?.isInside(particle.position)) try self.insertIntoTree(i) else {
+                if (self.withinBounds(particle.*)) try self.insertIntoTree(i) else {
                     self.removeParticle(i);
                     i -%= 1;
                 }
