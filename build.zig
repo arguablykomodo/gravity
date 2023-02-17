@@ -36,6 +36,7 @@ pub fn build(b: *std.build.Builder) void {
     const bench = b.addExecutable(.{
         .name = "bench",
         .root_source_file = .{ .path = "zig/bench.zig" },
+        .target = std.zig.CrossTarget.parse(.{ .arch_os_abi = "wasm32-wasi" }) catch unreachable,
         .optimize = optimize,
     });
     const install_bench = b.addInstallArtifact(bench);

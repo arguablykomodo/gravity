@@ -6,13 +6,16 @@ pub fn main() !void {
     var allocator = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer allocator.deinit();
 
-    var particles = try std.fmt.parseUnsigned(usize, std.os.getenv("PARTICLES").?, 10);
-    var steps = try std.fmt.parseUnsigned(usize, std.os.getenv("STEPS").?, 10);
-    const spread = try std.fmt.parseFloat(f32, std.os.getenv("SPREAD").?);
-    const speed = try std.fmt.parseFloat(f32, std.os.getenv("SPEED").?);
-    const scale = try std.fmt.parseFloat(f32, std.os.getenv("SCALE").?);
-    const gravitational_constant = try std.fmt.parseFloat(f32, std.os.getenv("GRAVITATIONAL_CONSTANT").?);
-    const theta = try std.fmt.parseFloat(f32, std.os.getenv("THETA").?);
+    var env = try std.process.getEnvMap(allocator.allocator());
+    defer env.deinit();
+
+    var particles = try std.fmt.parseUnsigned(usize, env.get("PARTICLES").?, 10);
+    var steps = try std.fmt.parseUnsigned(usize, env.get("STEPS").?, 10);
+    const spread = try std.fmt.parseFloat(f32, env.get("SPREAD").?);
+    const speed = try std.fmt.parseFloat(f32, env.get("SPEED").?);
+    const scale = try std.fmt.parseFloat(f32, env.get("SCALE").?);
+    const gravitational_constant = try std.fmt.parseFloat(f32, env.get("GRAVITATIONAL_CONSTANT").?);
+    const theta = try std.fmt.parseFloat(f32, env.get("THETA").?);
 
     var quadtree = Quadtree.init(allocator.allocator(), scale, gravitational_constant, theta);
     defer quadtree.deinit();
