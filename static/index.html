@@ -18,10 +18,10 @@
         <input id="theta" type="number" min="0" step="0.1" value="0.5"></input>
         <span>Timestep</span>
         <input id="dt" type="number" min="0" step="0.01" value="0.5"></input>
-        <label for="drawParticles">Render Particles</label>
-        <input id="drawParticles" type="checkbox" checked></input>
-        <label for="drawQuadtree">Render Quadtree</label>
-        <input id="drawQuadtree" type="checkbox"></input>
+        <label for="particles">Render Particles</label>
+        <input id="particles" type="checkbox" checked></input>
+        <label for="quadtree">Render Quadtree</label>
+        <input id="quadtree" type="checkbox"></input>
       </div>
     </details>
     <details>
@@ -30,9 +30,9 @@
         <span>Simulation Limits</span>
         <input id="scale" type="number" min="1" max="2147483647" value="4096"></input>
         <span>Particle Count</span>
-        <input id="particles" type="number" min="1" max="2147483647" value="10000"></input>
+        <input id="count" type="number" min="1" max="2147483647" value="10000"></input>
         <span>Particle Mass</span>
-        <input id="particleMass" type="number" min="0.001" max="100" step="0.1" value="1"></input>
+        <input id="mass" type="number" min="0.001" max="100" step="0.1" value="1"></input>
         <span>Spread</span>
         <input id="spread" type="number" min="0" max="2147483647" value="512"></input>
       </div>

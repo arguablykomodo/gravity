@@ -8,15 +8,11 @@ const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const bigGInput = document.getElementById("bigG") as HTMLInputElement;
 const thetaInput = document.getElementById("theta") as HTMLInputElement;
 const dtInput = document.getElementById("dt") as HTMLInputElement;
-const drawParticlesInput = document.getElementById(
-  "drawParticles",
-) as HTMLInputElement;
-const drawQuadtreeInput = document.getElementById(
-  "drawQuadtree",
-) as HTMLInputElement;
-const scaleInput = document.getElementById("scale") as HTMLInputElement;
 const particlesInput = document.getElementById("particles") as HTMLInputElement;
-const particleMassInput = document.getElementById("particleMass") as HTMLInputElement;
+const quadtreeInput = document.getElementById("quadtree") as HTMLInputElement;
+const scaleInput = document.getElementById("scale") as HTMLInputElement;
+const countInput = document.getElementById("count") as HTMLInputElement;
+const massInput = document.getElementById("mass") as HTMLInputElement;
 const spreadInput = document.getElementById("spread") as HTMLInputElement;
 const restartButton = document.getElementById("restart") as HTMLButtonElement;
 
@@ -169,7 +165,12 @@ function init() {
     bigGInput.valueAsNumber,
     thetaInput.valueAsNumber,
   );
-  wasm.disk(BigInt(Math.floor(Math.random() * 9007199254740991)), particlesInput.valueAsNumber, spreadInput.valueAsNumber, particleMassInput.valueAsNumber);
+  wasm.disk(
+    BigInt(Math.floor(Math.random() * 9007199254740991)),
+    countInput.valueAsNumber,
+    spreadInput.valueAsNumber,
+    massInput.valueAsNumber,
+  );
 }
 
 function step() {
@@ -190,11 +191,11 @@ function step() {
   );
 
   gl.clear(gl.COLOR_BUFFER_BIT);
-  if (drawQuadtreeInput.checked) {
+  if (quadtreeInput.checked) {
     wasm.getNodes();
     renderPipeline(gl, nodesPipeline, nodeCount, finalMatrix);
   }
-  if (drawParticlesInput.checked) {
+  if (particlesInput.checked) {
     wasm.getParticles();
     renderPipeline(gl, particlesPipeline, particleCount, finalMatrix);
   }
