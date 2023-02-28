@@ -84,8 +84,8 @@ test "particle" {
 
     // The forces between all bodies should cancel out, due to Newton's third law.
     var forces = @Vector(2, f32){ 0.0, 0.0 };
-    for (particles) |a, i| {
-        for (particles) |b, j| {
+    for (particles, 0..) |a, i| {
+        for (particles, 0..) |b, j| {
             if (i == j) continue;
             forces += a.force(b.position, b.mass, 1.0);
         }
@@ -96,10 +96,10 @@ test "particle" {
     const dt = 1e-3;
     var time: f32 = 0;
     while (time < period) : (time += dt) {
-        for (particles) |*particle| particle.updatePosition(dt);
-        for (particles) |*particle, i| {
+        for (&particles) |*particle| particle.updatePosition(dt);
+        for (&particles, 0..) |*particle, i| {
             forces = @Vector(2, f32){ 0.0, 0.0 };
-            for (particles) |other_particle, j| {
+            for (particles, 0..) |other_particle, j| {
                 if (i == j) continue;
                 forces += particle.force(other_particle.position, other_particle.mass, 1.0);
             }
