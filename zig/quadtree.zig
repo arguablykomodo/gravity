@@ -66,7 +66,7 @@ pub const Quadtree = struct {
     }
 
     fn deinitNode(self: *Quadtree, node: *Node) void {
-        if (node.data == .trunk) for (node.data.trunk.children) |child| {
+        if (node.data == .trunk) inline for (node.data.trunk.children) |child| {
             if (child) |child_node| self.deinitNode(child_node);
         };
         self.alloc.destroy(node);
@@ -156,7 +156,7 @@ pub const Quadtree = struct {
         node.data.trunk.total_mass -= removed_particle.mass;
         var children_count: usize = 0;
         var only_leaf_child: ?*Node = null;
-        for (node.data.trunk.children) |child| {
+        inline for (node.data.trunk.children) |child| {
             if (child) |child_node| {
                 children_count += 1;
                 if (node.data == .leaf) only_leaf_child = child_node;
@@ -200,7 +200,7 @@ pub const Quadtree = struct {
                 const distance = @sqrt(@reduce(.Add, position_diff * position_diff));
                 const quotient = node.radius * 2.0 / distance;
                 if (quotient > self.theta) {
-                    for (data.children) |child| if (child) |child_node| self.forcesRecursive(particle, total, child_node);
+                    inline for (data.children) |child| if (child) |child_node| self.forcesRecursive(particle, total, child_node);
                     return;
                 } else {
                     total.* += particle.force(center_of_mass, data.total_mass, self.big_g);
@@ -214,7 +214,7 @@ pub const Quadtree = struct {
         return if (node.collides(particle.*)) switch (node.data) {
             .leaf => |other_index| if (particle.node != self.particles.items[other_index].node and
                 particle.collides(self.particles.items[other_index])) other_index else null,
-            .trunk => |data| return for (data.children) |child| {
+            .trunk => |data| return inline for (data.children) |child| {
                 if (child) |child_node| if (self.collision(particle, child_node)) |result| break result;
             } else null,
         } else null;

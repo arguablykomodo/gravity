@@ -63,7 +63,7 @@ fn appendNodes(node: *Quadtree.Node) !void {
             .trunk => |data| data.weighted_sum,
         },
     });
-    if (node.data == .trunk) for (node.data.trunk.children) |child| {
+    if (node.data == .trunk) inline for (node.data.trunk.children) |child| {
         if (child) |child_node| try appendNodes(child_node);
     };
 }
