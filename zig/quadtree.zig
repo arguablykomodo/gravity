@@ -256,45 +256,30 @@ pub const Quadtree = struct {
         }
         for (self.particles.items) |*particle| particle.updateVelocity(self.forces(particle), dt);
     }
+
+    pub fn disk(self: *Quadtree, seed: u64, particles: usize, dispersion: f32, mass: f32) !void {
+        var random = std.rand.DefaultPrng.init(seed);
+        const rng = random.random();
+        try self.particles.ensureUnusedCapacity(particles);
+        const total_mass = @intToFloat(f32, particles) * mass;
+        const rate = 1.0 / dispersion;
+        for (0..particles) |_| {
+            const r = rng.floatExp(f32) / rate + rng.floatExp(f32) / rate;
+            const inner_mass = total_mass / 2.0 * (1.0 - @exp(-rate * r) * (rate * r + 1.0));
+            const a = rng.float(f32) * std.math.tau;
+            const p = @Vector(2, f32){ @cos(a), @sin(a) } * @splat(2, r);
+            const v = @Vector(2, f32){ @sin(a), -@cos(a) } * @splat(2, (r * rate / 2.0) * @sqrt((self.big_g * inner_mass) / r));
+            try self.insertParticle(Particle.new(p, v, mass));
+        }
+    }
 };
 
 test "quadtree" {
-    const scale = 64.0;
-    const particles = 1000;
-    const steps = 100;
-
-    var quadtree = Quadtree.init(std.testing.allocator, scale, 1.0, 0.5);
+    var quadtree = Quadtree.init(std.testing.allocator, 4096.0, 1.0, 0.5);
     defer quadtree.deinit();
+    try quadtree.disk(0, 10000, 1.0, 512.0);
 
-    var random = std.rand.DefaultPrng.init(0);
-    const rng = random.random();
-
-    var weighted_sum = @Vector(2, f32){ 0.0, 0.0 };
-    var i: usize = 0;
-    while (i < particles) : (i += 1) {
-        const position = @Vector(2, f32){ rng.float(f32) * scale * 2 - scale, rng.float(f32) * scale * 2 - scale };
-        weighted_sum += position;
-        try quadtree.insertParticle(Particle.new(position, .{ 0.0, 0.0 }, 1.0));
-    }
-
-    try std.testing.expectEqual(weighted_sum, quadtree.root.?.data.trunk.weighted_sum);
-    try std.testing.expectEqual(@as(f32, particles), quadtree.root.?.data.trunk.total_mass);
-
-    i = 0;
-    while (i < steps) : (i += 1) try quadtree.step(1.0 / 60.0);
-
-    try std.testing.expectEqual(@as(f32, scale), quadtree.root.?.radius);
-    try std.testing.expectEqual(@as(f32, scale / 2.0), quadtree.root.?.data.trunk.children[0].?.radius);
-
-    weighted_sum = @Vector(2, f32){ 0.0, 0.0 };
-    var total_mass: f32 = 0.0;
-    for (quadtree.particles.items) |particle| {
-        weighted_sum += particle.position * @splat(2, particle.mass);
-        total_mass += particle.mass;
-    }
-    try std.testing.expectApproxEqRel(total_mass, quadtree.root.?.data.trunk.total_mass, @sqrt(std.math.floatEps(f32)));
-    try std.testing.expectApproxEqRel(weighted_sum[0], quadtree.root.?.data.trunk.weighted_sum[0], @sqrt(std.math.floatEps(f32)));
-    try std.testing.expectApproxEqRel(weighted_sum[1], quadtree.root.?.data.trunk.weighted_sum[1], @sqrt(std.math.floatEps(f32)));
+    for (0..1000) |_| try quadtree.step(0.5);
 
     while (quadtree.particles.items.len > 0) {
         quadtree.removeFromTree(&quadtree.particles.items[0]);

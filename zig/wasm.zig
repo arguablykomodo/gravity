@@ -33,6 +33,10 @@ export fn insert(x: f32, y: f32, vx: f32, vy: f32, mass: f32) void {
     quadtree.insertParticle(Particle.new(.{ x, y }, .{ vx, vy }, mass)) catch |e| returnError(@errorName(e));
 }
 
+export fn disk(seed: u64, particles: usize, dispersion: f32, mass: f32) void {
+    quadtree.disk(seed, particles, dispersion, mass) catch |e| returnError(@errorName(e));
+}
+
 export fn step(dt: f32) void {
     quadtree.step(dt) catch |e| returnError(@errorName(e));
 }

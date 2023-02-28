@@ -6,6 +6,7 @@ export interface Wasm {
   setParameters(bigG: number, theta: number): void;
   deinit(): void;
   insert(x: number, y: number, vx: number, vy: number, mass: number): void;
+  disk(seed: BigInt, particles: number, dispersion: number, mass: number): void;
   step(dt: number): void;
   getParticles(): void;
   getNodes(): void;
