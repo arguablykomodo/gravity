@@ -9,17 +9,18 @@ pub fn main() !void {
     var env = try std.process.getEnvMap(allocator.allocator());
     defer env.deinit();
 
-    const scale = try std.fmt.parseFloat(f32, env.get("SCALE").?);
-    const gravitational_constant = try std.fmt.parseFloat(f32, env.get("GRAVITATIONAL_CONSTANT").?);
-    const theta = try std.fmt.parseFloat(f32, env.get("THETA").?);
-    const particles = try std.fmt.parseUnsigned(usize, env.get("PARTICLES").?, 10);
-    const dispersion = try std.fmt.parseFloat(f32, env.get("DISPERSION").?);
-    const mass = try std.fmt.parseFloat(f32, env.get("MASS").?);
-    var steps = try std.fmt.parseUnsigned(usize, env.get("STEPS").?, 10);
+    const big_g = try std.fmt.parseFloat(f32, env.get("BIG_G") orelse "1.0");
+    const theta = try std.fmt.parseFloat(f32, env.get("THETA") orelse "0.5");
+    const dt = try std.fmt.parseFloat(f32, env.get("TIMESTEP") orelse "0.5");
+    const scale = try std.fmt.parseFloat(f32, env.get("SCALE") orelse "4096.0");
+    const count = try std.fmt.parseUnsigned(usize, env.get("COUNT") orelse "10000", 10);
+    const mass = try std.fmt.parseFloat(f32, env.get("MASS") orelse "1.0");
+    const spread = try std.fmt.parseFloat(f32, env.get("SPREAD") orelse "512.0");
+    const steps = try std.fmt.parseUnsigned(usize, env.get("STEPS") orelse "100", 10);
 
-    var quadtree = Quadtree.init(allocator.allocator(), scale, gravitational_constant, theta);
+    var quadtree = Quadtree.init(allocator.allocator(), scale, big_g, theta);
     defer quadtree.deinit();
-    try quadtree.disk(0, particles, dispersion, mass);
+    try quadtree.disk(0, count, spread, mass);
 
-    while (steps > 0) : (steps -= 1) try quadtree.step(1.0 / 60.0);
+    for (0..steps) |_| try quadtree.step(dt);
 }
