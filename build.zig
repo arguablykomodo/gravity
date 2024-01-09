@@ -1,46 +1,59 @@
 const std = @import("std");
 
-pub fn build(b: *std.build.Builder) void {
+fn walkDir(b: *std.Build, dir: []const u8) ![]const []const u8 {
+    var files = std.ArrayList([]const u8).init(b.allocator);
+    errdefer files.deinit();
+    var ts_dir = try std.fs.openDirAbsolute(b.pathFromRoot(dir), .{ .iterate = true });
+    defer ts_dir.close();
+    var walker = try ts_dir.walk(b.allocator);
+    defer walker.deinit();
+    while (walker.next() catch unreachable) |entry| {
+        try files.append(try b.allocator.dupe(u8, b.pathJoin(&.{ dir, entry.path })));
+    }
+    return try files.toOwnedSlice();
+}
+
+pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
-    const wasm = b.addStaticLibrary(.{
+    const build_wasm = b.addExecutable(.{
         .name = "gravity",
-        .root_source_file = .{ .path = "zig/wasm.zig" },
-        .target = std.zig.CrossTarget.parse(.{ .arch_os_abi = "wasm32-freestanding" }) catch unreachable,
+        .target = b.resolveTargetQuery(.{ .cpu_arch = .wasm32, .os_tag = .freestanding }),
         .optimize = optimize,
+        .root_source_file = .{ .path = "zig/wasm.zig" },
     });
-    wasm.rdynamic = true;
-    wasm.linkage = .dynamic;
-
-    const install_wasm = b.addInstallArtifact(wasm);
-    install_wasm.dest_dir = std.build.InstallDir.prefix;
+    build_wasm.entry = .disabled;
+    build_wasm.rdynamic = true;
+    const install_wasm = b.addInstallArtifact(build_wasm, .{ .dest_dir = .{ .override = .prefix } });
     b.getInstallStep().dependOn(&install_wasm.step);
 
-    const static_step = b.addInstallDirectory(.{
-        .source_dir = "static",
-        .install_dir = std.build.InstallDir.prefix,
+    const install_static = b.addInstallDirectory(.{
+        .source_dir = .{ .path = "static" },
+        .install_dir = .prefix,
         .install_subdir = "",
     });
-    b.getInstallStep().dependOn(&static_step.step);
+    b.getInstallStep().dependOn(&install_static.step);
 
-    const deno_step = b.addSystemCommand(&.{ "deno", "bundle", "--quiet", "ts/main.ts", b.pathJoin(&.{ b.install_prefix, "main.js" }) });
-    deno_step.condition = .always;
-    b.getInstallStep().dependOn(&deno_step.step);
+    const run_bundle = b.addSystemCommand(&.{ "deno", "bundle", "--quiet" });
+    run_bundle.addFileArg(.{ .path = "ts/main.ts" });
+    run_bundle.extra_file_dependencies = walkDir(b, "ts") catch unreachable;
 
-    const zig_tests = b.addTest(.{
+    const install_bundle = b.addInstallFile(run_bundle.addOutputFileArg("main.js"), "main.js");
+    b.getInstallStep().dependOn(&install_bundle.step);
+
+    const build_tests = b.addTest(.{
         .root_source_file = .{ .path = "zig/test.zig" },
         .optimize = optimize,
     });
-    const test_step = b.step("test", "Run tests");
-    test_step.dependOn(&zig_tests.step);
+    const run_tests = b.addRunArtifact(build_tests);
+    b.step("test", "Run tests").dependOn(&run_tests.step);
 
-    const bench = b.addExecutable(.{
+    const build_bench = b.addExecutable(.{
         .name = "bench",
-        .root_source_file = .{ .path = "zig/bench.zig" },
-        .target = std.zig.CrossTarget.parse(.{ .arch_os_abi = "wasm32-wasi" }) catch unreachable,
+        .target = b.resolveTargetQuery(.{ .cpu_arch = .wasm32, .os_tag = .wasi }),
         .optimize = optimize,
+        .root_source_file = .{ .path = "zig/bench.zig" },
     });
-    const install_bench = b.addInstallArtifact(bench);
-    const bench_step = b.step("bench", "Build benchmark");
-    bench_step.dependOn(&install_bench.step);
+    const install_bench = b.addInstallArtifact(build_bench, .{});
+    b.step("bench", "Build benchmark").dependOn(&install_bench.step);
 }
