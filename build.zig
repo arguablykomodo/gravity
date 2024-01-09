@@ -34,11 +34,12 @@ pub fn build(b: *std.Build) void {
     });
     b.getInstallStep().dependOn(&install_static.step);
 
-    const run_bundle = b.addSystemCommand(&.{ "deno", "bundle", "--quiet" });
+    const run_bundle = b.addSystemCommand(&.{ "bun", "build" });
+    if (optimize == .Debug) run_bundle.addArg("--sourcemap") else run_bundle.addArg("--minify");
     run_bundle.addFileArg(.{ .path = "ts/main.ts" });
     run_bundle.extra_file_dependencies = walkDir(b, "ts") catch unreachable;
-
-    const install_bundle = b.addInstallFile(run_bundle.addOutputFileArg("main.js"), "main.js");
+    const bundled = run_bundle.captureStdOut();
+    const install_bundle = b.addInstallFile(bundled, "main.js");
     b.getInstallStep().dependOn(&install_bundle.step);
 
     const build_tests = b.addTest(.{
