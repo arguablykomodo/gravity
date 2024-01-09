@@ -1,74 +1,51 @@
 const std = @import("std");
+const mach_core = @import("mach_core");
 
-fn walkDir(b: *std.Build, dir: []const u8) ![]const []const u8 {
-    var files = std.ArrayList([]const u8).init(b.allocator);
-    errdefer files.deinit();
-    var ts_dir = try std.fs.openDirAbsolute(b.pathFromRoot(dir), .{ .iterate = true });
-    defer ts_dir.close();
-    var walker = try ts_dir.walk(b.allocator);
-    defer walker.deinit();
-    while (walker.next() catch unreachable) |entry| {
-        try files.append(try b.allocator.dupe(u8, b.pathJoin(&.{ dir, entry.path })));
-    }
-    return try files.toOwnedSlice();
-}
+// Although this function looks imperative, note that its job is to
+// declaratively construct a build graph that will be executed by an external
+// runner.
+pub fn build(b: *std.Build) !void {
+    // Standard target options allows the person running `zig build` to choose
+    // what target to build for. Here we do not override the defaults, which
+    // means any target is allowed, and the default is native. Other options
+    // for restricting supported target set are available.
+    const target = b.standardTargetOptions(.{});
 
-pub fn build(b: *std.Build) void {
+    // Standard optimization options allow the person running `zig build` to select
+    // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
+    // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
-    const cpu_features = std.Target.wasm.featureSet(&.{
-        .multivalue,
-        .relaxed_simd,
-        .simd128,
-    });
-
-    const build_wasm = b.addExecutable(.{
-        .name = "gravity",
-        .target = b.resolveTargetQuery(.{
-            .cpu_arch = .wasm32,
-            .os_tag = .freestanding,
-            .cpu_features_add = cpu_features,
-        }),
-        .optimize = optimize,
-        .root_source_file = .{ .path = "zig/wasm.zig" },
-    });
-    build_wasm.entry = .disabled;
-    build_wasm.rdynamic = true;
-    const install_wasm = b.addInstallArtifact(build_wasm, .{ .dest_dir = .{ .override = .prefix } });
-    b.getInstallStep().dependOn(&install_wasm.step);
-
-    const install_static = b.addInstallDirectory(.{
-        .source_dir = .{ .path = "static" },
-        .install_dir = .prefix,
-        .install_subdir = "",
-    });
-    b.getInstallStep().dependOn(&install_static.step);
-
-    const run_bundle = b.addSystemCommand(&.{ "bun", "build" });
-    if (optimize == .Debug) run_bundle.addArg("--sourcemap") else run_bundle.addArg("--minify");
-    run_bundle.addFileArg(.{ .path = "ts/main.ts" });
-    run_bundle.extra_file_dependencies = walkDir(b, "ts") catch unreachable;
-    const bundled = run_bundle.captureStdOut();
-    const install_bundle = b.addInstallFile(bundled, "main.js");
-    b.getInstallStep().dependOn(&install_bundle.step);
-
-    const build_tests = b.addTest(.{
-        .root_source_file = .{ .path = "zig/test.zig" },
+    const mach_core_dep = b.dependency("mach_core", .{
+        .target = target,
         .optimize = optimize,
     });
-    const run_tests = b.addRunArtifact(build_tests);
-    b.step("test", "Run tests").dependOn(&run_tests.step);
-
-    const build_bench = b.addExecutable(.{
-        .name = "bench",
-        .target = b.resolveTargetQuery(.{
-            .cpu_arch = .wasm32,
-            .os_tag = .wasi,
-            .cpu_features_add = cpu_features,
-        }),
+    const app = try mach_core.App.init(b, mach_core_dep.builder, .{
+        .name = "myapp",
+        .src = "src/main.zig",
+        .target = target,
         .optimize = optimize,
-        .root_source_file = .{ .path = "zig/bench.zig" },
     });
-    const install_bench = b.addInstallArtifact(build_bench, .{});
-    b.step("bench", "Build benchmark").dependOn(&install_bench.step);
+    if (b.args) |args| app.run.addArgs(args);
+
+    // This creates a build step. It will be visible in the `zig build --help` menu,
+    // and can be selected like this: `zig build run`
+    // This will evaluate the `run` step rather than the default, which is "install".
+    const run_step = b.step("run", "Run the app");
+    run_step.dependOn(&app.run.step);
+
+    // Creates a step for unit testing. This only builds the test executable
+    // but does not run it.
+    const unit_tests = b.addTest(.{
+        .root_source_file = .{ .path = "src/main.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+
+    // Similar to creating the run step earlier, this exposes a `test` step to
+    // the `zig build --help` menu, providing a way for the user to request
+    // running the unit tests.
+    const run_unit_tests = b.addRunArtifact(unit_tests);
+    const test_step = b.step("test", "Run unit tests");
+    test_step.dependOn(&run_unit_tests.step);
 }
