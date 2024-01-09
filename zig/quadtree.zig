@@ -1,5 +1,6 @@
 const std = @import("std");
 const Particle = @import("particle.zig").Particle;
+const splat = @import("utils.zig").splat;
 
 pub const Quadtree = struct {
     pub const Node = struct {
@@ -26,18 +27,18 @@ pub const Quadtree = struct {
         }
 
         pub fn isInside(self: Node, position: @Vector(2, f32)) bool {
-            const corner_0 = self.center - @splat(2, self.radius);
-            const corner_1 = self.center + @splat(2, self.radius);
+            const corner_0 = self.center - splat(self.radius);
+            const corner_1 = self.center + splat(self.radius);
             // Inclusive on the negative corner to handle the edge case of a
             // particle being right in the middle.
             return @reduce(.And, position >= corner_0) and @reduce(.And, position < corner_1);
         }
 
         pub fn collides(self: Node, particle: Particle) bool {
-            const node_0 = self.center - @splat(2, self.radius);
-            const node_1 = self.center + @splat(2, self.radius);
-            const particle_0 = particle.position - @splat(2, particle.radius());
-            const particle_1 = particle.position + @splat(2, particle.radius());
+            const node_0 = self.center - splat(self.radius);
+            const node_1 = self.center + splat(self.radius);
+            const particle_0 = particle.position - splat(particle.radius());
+            const particle_1 = particle.position + splat(particle.radius());
             return @reduce(.And, node_0 < particle_1) and @reduce(.And, node_1 > particle_0);
         }
     };
@@ -73,8 +74,8 @@ pub const Quadtree = struct {
     }
 
     fn withinBounds(self: Quadtree, particle: Particle) bool {
-        return @reduce(.And, particle.position >= @splat(2, -self.scale)) and
-            @reduce(.And, particle.position < @splat(2, self.scale));
+        return @reduce(.And, particle.position >= splat(-self.scale)) and
+            @reduce(.And, particle.position < splat(self.scale));
     }
 
     pub fn insertParticle(self: *Quadtree, particle: Particle) !void {
@@ -110,7 +111,7 @@ pub const Quadtree = struct {
             },
             .trunk => |*data| {
                 const particle = &self.particles.items[particle_index];
-                data.weighted_sum += particle.position * @splat(2, particle.mass);
+                data.weighted_sum += particle.position * splat(particle.mass);
                 data.total_mass += particle.mass;
                 const x = particle.position[0] < node.center[0];
                 const y = particle.position[1] < node.center[1];
@@ -121,7 +122,7 @@ pub const Quadtree = struct {
                     const child = try self.alloc.create(Node);
                     node.data.trunk.children[child_index] = child;
                     child.* = .{
-                        .center = node.center + @splat(2, node.radius / 2.0) * @Vector(2, f32){
+                        .center = node.center + splat(node.radius / 2.0) * @Vector(2, f32){
                             if (child_index & 1 == 1) 1.0 else -1.0,
                             if (child_index & 2 == 2) 1.0 else -1.0,
                         },
@@ -152,7 +153,7 @@ pub const Quadtree = struct {
 
     /// Assumes `node` is a trunk.
     fn removeFromTreeRecursive(self: *Quadtree, removed_particle: *const Particle, node: *Node) void {
-        node.data.trunk.weighted_sum -= removed_particle.position * @splat(2, removed_particle.mass);
+        node.data.trunk.weighted_sum -= removed_particle.position * splat(removed_particle.mass);
         node.data.trunk.total_mass -= removed_particle.mass;
         var children_count: usize = 0;
         var only_leaf_child: ?*Node = null;
@@ -175,7 +176,7 @@ pub const Quadtree = struct {
             node.data = .{ .leaf = particle };
             if (node.is_child) |data| self.removeFromTreeRecursive(removed_particle, data.parent);
         } else if (node.is_child) |data| data.parent.update(
-            -removed_particle.position * @splat(2, removed_particle.mass),
+            -removed_particle.position * splat(removed_particle.mass),
             -removed_particle.mass,
         );
     }
@@ -195,7 +196,7 @@ pub const Quadtree = struct {
                 return;
             },
             .trunk => |data| {
-                const center_of_mass = data.weighted_sum / @splat(2, data.total_mass);
+                const center_of_mass = data.weighted_sum / splat(data.total_mass);
                 const position_diff = center_of_mass - particle.position;
                 const distance = @sqrt(@reduce(.Add, position_diff * position_diff));
                 const quotient = node.radius * 2.0 / distance;
@@ -226,7 +227,7 @@ pub const Quadtree = struct {
             const particle = &self.particles.items[i];
             const old_position = particle.position;
             particle.updatePosition(dt);
-            if (particle.node.is_child) |data| data.parent.update((particle.position - old_position) * @splat(2, particle.mass), 0.0);
+            if (particle.node.is_child) |data| data.parent.update((particle.position - old_position) * splat(particle.mass), 0.0);
             if (!particle.node.isInside(particle.position)) {
                 self.removeFromTree(particle);
                 if (self.withinBounds(particle.*)) try self.insertIntoTree(i) else {
@@ -261,14 +262,14 @@ pub const Quadtree = struct {
         var random = std.rand.DefaultPrng.init(seed);
         const rng = random.random();
         try self.particles.ensureUnusedCapacity(particles);
-        const total_mass = @intToFloat(f32, particles) * mass;
+        const total_mass = @as(f32, @floatFromInt(particles)) * mass;
         const rate = 1.0 / dispersion;
         for (0..particles) |_| {
             const r = rng.floatExp(f32) / rate + rng.floatExp(f32) / rate;
             const inner_mass = total_mass / 2.0 * (1.0 - @exp(-rate * r) * (rate * r + 1.0));
             const a = rng.float(f32) * std.math.tau;
-            const p = @Vector(2, f32){ @cos(a), @sin(a) } * @splat(2, r);
-            const v = @Vector(2, f32){ @sin(a), -@cos(a) } * @splat(2, (r * rate / 2.0) * @sqrt((self.big_g * inner_mass) / r));
+            const p = @Vector(2, f32){ @cos(a), @sin(a) } * splat(r);
+            const v = @Vector(2, f32){ @sin(a), -@cos(a) } * splat((r * rate / 2.0) * @sqrt((self.big_g * inner_mass) / r));
             try self.insertParticle(Particle.new(p, v, mass));
         }
     }

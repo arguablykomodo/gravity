@@ -1,5 +1,6 @@
 const std = @import("std");
 const Quadtree = @import("quadtree.zig").Quadtree;
+const splat = @import("utils.zig").splat;
 
 pub const Particle = packed struct {
     position: @Vector(2, f32),
@@ -27,17 +28,17 @@ pub const Particle = packed struct {
     pub fn force(self: Particle, position: @Vector(2, f32), mass: f32, big_g: f32) @Vector(2, f32) {
         const position_diff = position - self.position;
         const distance = @sqrt(@reduce(.Add, position_diff * position_diff));
-        const direction = (position - self.position) / @splat(2, distance);
-        return direction * @splat(2, big_g * (self.mass * mass) / (distance * distance));
+        const direction = (position - self.position) / splat(distance);
+        return direction * splat(big_g * (self.mass * mass) / (distance * distance));
     }
 
     pub fn updatePosition(self: *Particle, dt: f32) void {
-        self.position += self.velocity * @splat(2, dt) + self.acceleration * @splat(2, 0.5 * dt * dt);
+        self.position += self.velocity * splat(dt) + self.acceleration * splat(0.5 * dt * dt);
     }
 
     pub fn updateVelocity(self: *Particle, forces: @Vector(2, f32), dt: f32) void {
-        const acceleration = forces / @splat(2, self.mass);
-        self.velocity += (self.acceleration + acceleration) * @splat(2, 0.5 * dt);
+        const acceleration = forces / splat(self.mass);
+        self.velocity += (self.acceleration + acceleration) * splat(0.5 * dt);
         self.acceleration = acceleration;
     }
 
@@ -49,12 +50,12 @@ pub const Particle = packed struct {
 
     pub fn collide(self: Particle, other: Particle) Particle {
         return .{
-            .position = (self.position * @splat(2, self.mass) +
-                other.position * @splat(2, other.mass)) /
-                @splat(2, self.mass + other.mass),
-            .velocity = (self.velocity * @splat(2, self.mass) +
-                other.velocity * @splat(2, other.mass)) /
-                @splat(2, self.mass + other.mass),
+            .position = (self.position * splat(self.mass) +
+                other.position * splat(other.mass)) /
+                splat(self.mass + other.mass),
+            .velocity = (self.velocity * splat(self.mass) +
+                other.velocity * splat(other.mass)) /
+                splat(self.mass + other.mass),
             .acceleration = .{ 0.0, 0.0 },
             .mass = self.mass + other.mass,
             .node = undefined,

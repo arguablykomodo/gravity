@@ -1,6 +1,7 @@
 const std = @import("std");
 const Quadtree = @import("quadtree.zig").Quadtree;
 const Particle = @import("particle.zig").Particle;
+const splat = @import("utils.zig").splat;
 
 const GlNode = packed struct {
     center: @Vector(2, f32),
@@ -63,7 +64,7 @@ fn appendNodes(node: *Quadtree.Node) !void {
             .trunk => |data| data.total_mass,
         },
         .weighted_sum = switch (node.data) {
-            .leaf => |i| quadtree.particles.items[i].position * @splat(2, quadtree.particles.items[i].mass),
+            .leaf => |i| quadtree.particles.items[i].position * splat(quadtree.particles.items[i].mass),
             .trunk => |data| data.weighted_sum,
         },
     });
