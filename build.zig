@@ -16,9 +16,19 @@ fn walkDir(b: *std.Build, dir: []const u8) ![]const []const u8 {
 pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
+    const cpu_features = std.Target.wasm.featureSet(&.{
+        .multivalue,
+        .relaxed_simd,
+        .simd128,
+    });
+
     const build_wasm = b.addExecutable(.{
         .name = "gravity",
-        .target = b.resolveTargetQuery(.{ .cpu_arch = .wasm32, .os_tag = .freestanding }),
+        .target = b.resolveTargetQuery(.{
+            .cpu_arch = .wasm32,
+            .os_tag = .freestanding,
+            .cpu_features_add = cpu_features,
+        }),
         .optimize = optimize,
         .root_source_file = .{ .path = "zig/wasm.zig" },
     });
@@ -51,7 +61,11 @@ pub fn build(b: *std.Build) void {
 
     const build_bench = b.addExecutable(.{
         .name = "bench",
-        .target = b.resolveTargetQuery(.{ .cpu_arch = .wasm32, .os_tag = .wasi }),
+        .target = b.resolveTargetQuery(.{
+            .cpu_arch = .wasm32,
+            .os_tag = .wasi,
+            .cpu_features_add = cpu_features,
+        }),
         .optimize = optimize,
         .root_source_file = .{ .path = "zig/bench.zig" },
     });
