@@ -181,19 +181,12 @@ pub const Quadtree = struct {
         );
     }
 
-    fn forces(self: *Quadtree, particle: *const Particle) @Vector(2, f32) {
-        var total = @Vector(2, f32){ 0.0, 0.0 };
-        self.forcesRecursive(particle, &total, self.root.?);
-        return total;
-    }
-
-    fn forcesRecursive(self: *Quadtree, particle: *const Particle, total: *@Vector(2, f32), node: *const Node) void {
+    fn forces(self: *Quadtree, particle: *const Particle, node: *const Node) @Vector(2, f32) {
         switch (node.data) {
             .leaf => |other_particle_index| {
-                if (particle.node == node) return;
+                if (particle.node == node) return splat(0.0);
                 const other_particle = self.particles.items[other_particle_index];
-                total.* += particle.force(other_particle.position, other_particle.mass, self.big_g);
-                return;
+                return particle.force(other_particle.position, other_particle.mass, self.big_g);
             },
             .trunk => |data| {
                 const center_of_mass = data.weighted_sum / splat(data.total_mass);
@@ -201,11 +194,13 @@ pub const Quadtree = struct {
                 const distance = @sqrt(@reduce(.Add, position_diff * position_diff));
                 const quotient = node.radius * 2.0 / distance;
                 if (quotient > self.theta) {
-                    inline for (data.children) |child| if (child) |child_node| self.forcesRecursive(particle, total, child_node);
-                    return;
+                    var total = @Vector(2, f32){ 0.0, 0.0 };
+                    inline for (data.children) |child| if (child) |child_node| {
+                        total += self.forces(particle, child_node);
+                    };
+                    return total;
                 } else {
-                    total.* += particle.force(center_of_mass, data.total_mass, self.big_g);
-                    return;
+                    return particle.force(center_of_mass, data.total_mass, self.big_g);
                 }
             },
         }
@@ -255,7 +250,8 @@ pub const Quadtree = struct {
                 try self.insertParticle(new_particle);
             }
         }
-        for (self.particles.items) |*particle| particle.updateVelocity(self.forces(particle), dt);
+        for (self.particles.items) |*particle|
+            particle.updateVelocity(self.forces(particle, self.root.?), dt);
     }
 
     pub fn disk(self: *Quadtree, seed: u64, particles: usize, dispersion: f32, mass: f32) !void {
