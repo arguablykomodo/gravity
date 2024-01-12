@@ -3,13 +3,13 @@ const core = @import("mach-core");
 const gpu = core.gpu;
 
 pub const Particle = extern struct {
-    position: [2]f32,
-    velocity: [2]f32,
-    acceleration: [2]f32,
+    position: @Vector(2, f32),
+    velocity: @Vector(2, f32),
+    acceleration: @Vector(2, f32),
     mass: f32,
 
     pub const layout = gpu.VertexBufferLayout.init(.{
-        .array_stride = 7 * @sizeOf(f32),
+        .array_stride = @sizeOf(Particle),
         .step_mode = .instance,
         .attributes = &.{
             .{ .shader_location = 0, .offset = 0, .format = .float32x2 },

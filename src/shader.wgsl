@@ -26,7 +26,7 @@ struct VertexData {
 ) -> VertexData {
     let vertex = QUAD[vertex_index];
     var out: VertexData;
-    out.position = vec4<f32>(vertex * particle.mass + particle.position, 0.0, 1.0);
+    out.position = vec4<f32>(vertex * sqrt(particle.mass / PI) + particle.position, 0.0, 1.0);
     out.uv = vertex;
     out.velocity = particle.velocity;
     out.acceleration = particle.acceleration;
