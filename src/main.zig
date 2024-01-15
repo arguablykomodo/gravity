@@ -8,8 +8,13 @@ const PARTICLES = 1000;
 
 pub const App = @This();
 
-particle_pipeline: Particle.Pipeline,
-node_pipeline: Node.Pipeline,
+particles: []Particle,
+particle_buffer: *gpu.Buffer,
+particle_pipeline: *gpu.RenderPipeline,
+
+nodes: []Node,
+node_buffer: *gpu.Buffer,
+node_pipeline: *gpu.RenderPipeline,
 
 compute_pipeline: *gpu.ComputePipeline,
 compute_bind_group: *gpu.BindGroup,
@@ -17,9 +22,32 @@ compute_bind_group: *gpu.BindGroup,
 pub fn init(app: *App) !void {
     try core.init(.{});
 
-    const particle_pipeline = try Particle.Pipeline.init(core.allocator, PARTICLES);
+    var rng = std.rand.DefaultPrng.init(0);
+    const random = rng.random();
 
-    const node_pipeline = try Node.Pipeline.init(core.allocator, PARTICLES - 1);
+    const particles = try core.allocator.alloc(Particle, PARTICLES);
+    for (particles) |*p| {
+        p.position = .{ random.floatNorm(f32), random.floatNorm(f32) };
+        p.velocity = .{ 0.0, 0.0 };
+        p.acceleration = .{ 0.0, 0.0 };
+        p.mass = 0.001;
+    }
+    const particle_buffer = core.device.createBuffer(&.{
+        .usage = .{ .storage = true, .vertex = true, .copy_dst = true },
+        .size = @sizeOf(Particle) * particles.len,
+    });
+    core.queue.writeBuffer(particle_buffer, 0, particles[0..]);
+
+    const nodes = try core.allocator.alloc(Node, PARTICLES - 1);
+    for (nodes) |*n| {
+        n.min_corner = .{ -random.floatExp(f32), -random.floatExp(f32) };
+        n.max_corner = .{ random.floatExp(f32), random.floatExp(f32) };
+    }
+    const node_buffer = core.device.createBuffer(&.{
+        .usage = .{ .storage = true, .vertex = true, .copy_dst = true },
+        .size = @sizeOf(Node) * nodes.len,
+    });
+    core.queue.writeBuffer(node_buffer, 0, nodes[0..]);
 
     const compute_module = core.device.createShaderModuleWGSL("compute.wgsl", @embedFile("compute.wgsl"));
     defer compute_module.release();
@@ -31,12 +59,17 @@ pub fn init(app: *App) !void {
 
     const compute_bind_group = core.device.createBindGroup(&gpu.BindGroup.Descriptor.init(.{
         .layout = compute_pipeline.getBindGroupLayout(0),
-        .entries = &.{particle_pipeline.bindGroup(0)},
+        .entries = &.{gpu.BindGroup.Entry.buffer(0, particle_buffer, 0, @sizeOf(Particle) * particles.len)},
     }));
 
     app.* = .{
-        .particle_pipeline = particle_pipeline,
-        .node_pipeline = node_pipeline,
+        .particles = particles,
+        .particle_buffer = particle_buffer,
+        .particle_pipeline = Particle.pipeline(),
+
+        .nodes = nodes,
+        .node_buffer = node_buffer,
+        .node_pipeline = Node.pipeline(),
 
         .compute_pipeline = compute_pipeline,
         .compute_bind_group = compute_bind_group,
@@ -46,8 +79,15 @@ pub fn init(app: *App) !void {
 pub fn deinit(app: *App) void {
     app.compute_bind_group.release();
     app.compute_pipeline.release();
-    app.node_pipeline.deinit();
-    app.particle_pipeline.deinit();
+
+    app.node_pipeline.release();
+    app.node_buffer.release();
+    core.allocator.free(app.nodes);
+
+    app.particle_pipeline.release();
+    app.particle_buffer.release();
+    core.allocator.free(app.particles);
+
     core.deinit();
 }
 
@@ -79,8 +119,15 @@ pub fn update(app: *App) !bool {
             .store_op = .store,
         }},
     }));
-    app.node_pipeline.render(render_pass);
-    app.particle_pipeline.render(render_pass);
+
+    render_pass.setPipeline(app.node_pipeline);
+    render_pass.setVertexBuffer(0, app.node_buffer, 0, gpu.whole_size);
+    render_pass.draw(5, @intCast(app.nodes.len), 0, 0);
+
+    render_pass.setPipeline(app.particle_pipeline);
+    render_pass.setVertexBuffer(0, app.particle_buffer, 0, gpu.whole_size);
+    render_pass.draw(4, @intCast(app.particles.len), 0, 0);
+
     render_pass.end();
     render_pass.release();
 
