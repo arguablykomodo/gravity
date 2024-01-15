@@ -1,6 +1,7 @@
 const std = @import("std");
 const core = @import("mach-core");
 const Particle = @import("particle.zig").Particle;
+const Node = @import("node.zig").Node;
 const gpu = core.gpu;
 
 const PARTICLES = 1000;
@@ -8,6 +9,7 @@ const PARTICLES = 1000;
 pub const App = @This();
 
 particle_pipeline: Particle.Pipeline,
+node_pipeline: Node.Pipeline,
 
 compute_pipeline: *gpu.ComputePipeline,
 compute_bind_group: *gpu.BindGroup,
@@ -16,6 +18,8 @@ pub fn init(app: *App) !void {
     try core.init(.{});
 
     const particle_pipeline = try Particle.Pipeline.init(core.allocator, PARTICLES);
+
+    const node_pipeline = try Node.Pipeline.init(core.allocator, PARTICLES - 1);
 
     const compute_module = core.device.createShaderModuleWGSL("compute.wgsl", @embedFile("compute.wgsl"));
     defer compute_module.release();
@@ -32,6 +36,7 @@ pub fn init(app: *App) !void {
 
     app.* = .{
         .particle_pipeline = particle_pipeline,
+        .node_pipeline = node_pipeline,
 
         .compute_pipeline = compute_pipeline,
         .compute_bind_group = compute_bind_group,
@@ -41,6 +46,7 @@ pub fn init(app: *App) !void {
 pub fn deinit(app: *App) void {
     app.compute_bind_group.release();
     app.compute_pipeline.release();
+    app.node_pipeline.deinit();
     app.particle_pipeline.deinit();
     core.deinit();
 }
@@ -73,6 +79,7 @@ pub fn update(app: *App) !bool {
             .store_op = .store,
         }},
     }));
+    app.node_pipeline.render(render_pass);
     app.particle_pipeline.render(render_pass);
     render_pass.end();
     render_pass.release();
