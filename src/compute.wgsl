@@ -5,12 +5,7 @@ struct Particle {
     mass: f32,
 };
 
-struct ComputeUniforms {
-    dt: f32,
-}
-
 @group(0) @binding(0) var<storage, read_write> particles: array<Particle>;
-@group(0) @binding(1) var<uniform> uniforms: ComputeUniforms;
 
 @compute @workgroup_size(1) fn compute(
     @builtin(global_invocation_id) id: vec3<u32>
@@ -26,7 +21,7 @@ struct ComputeUniforms {
             pow(max(0.01, distance(particles[i].position, particle.position)), 2)
         );
     }
-    particle.velocity += particle.acceleration * uniforms.dt;
-    particle.position += particle.velocity * uniforms.dt;
+    particle.velocity += particle.acceleration * 0.016;
+    particle.position += particle.velocity * 0.016;
     particles[id.x] = particle;
 }

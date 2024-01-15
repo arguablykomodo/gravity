@@ -20,13 +20,17 @@ struct VertexData {
     @location(2) acceleration: vec2<f32>,
 };
 
+fn radius(mass: f32) -> f32 {
+    return sqrt(mass / PI);
+}
+
 @vertex fn vertex(
     @builtin(vertex_index) vertex_index: u32,
     particle: Particle,
 ) -> VertexData {
     let vertex = QUAD[vertex_index];
     var out: VertexData;
-    out.position = vec4<f32>(vertex * sqrt(particle.mass / PI) + particle.position, 0.0, 1.0);
+    out.position = vec4<f32>(vertex * radius(particle.mass) + particle.position, 0.0, 1.0);
     out.uv = vertex;
     out.velocity = particle.velocity;
     out.acceleration = particle.acceleration;
