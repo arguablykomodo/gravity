@@ -3,12 +3,13 @@ const core = @import("mach-core");
 const Particle = @import("particle.zig").Particle;
 const gpu = core.gpu;
 
-const PARTICLES = 1000;
+const PARTICLES = 10000;
 
 pub const App = @This();
 
+allocator: std.heap.GeneralPurposeAllocator(.{}),
 timer: core.Timer,
-particles: [PARTICLES]Particle,
+particles: []Particle,
 particle_buffer: *gpu.Buffer,
 render_pipeline: *gpu.RenderPipeline,
 compute_pipeline: *gpu.ComputePipeline,
@@ -22,10 +23,12 @@ const ComputeUniforms = struct {
 pub fn init(app: *App) !void {
     try core.init(.{});
 
-    var particles: [PARTICLES]Particle = undefined;
+    var allocator = std.heap.GeneralPurposeAllocator(.{}){};
+
+    var particles = try allocator.allocator().alloc(Particle, PARTICLES);
     var rng = std.rand.DefaultPrng.init(0);
     const random = rng.random();
-    for (&particles) |*p| {
+    for (particles) |*p| {
         p.position = .{ random.floatNorm(f32), random.floatNorm(f32) };
         p.velocity = .{ 0.0, 0.0 };
         p.acceleration = .{ 0.0, 0.0 };
@@ -85,6 +88,7 @@ pub fn init(app: *App) !void {
     }));
 
     app.* = .{
+        .allocator = allocator,
         .timer = try core.Timer.start(),
         .particles = particles,
         .particle_buffer = particle_buffer,
@@ -101,6 +105,7 @@ pub fn deinit(app: *App) void {
     app.compute_bind_group.release();
     app.compute_uniforms_buffer.release();
     app.compute_pipeline.release();
+    app.allocator.allocator().free(app.particles);
     core.deinit();
 }
 
