@@ -14,7 +14,7 @@ struct VertexData {
     var out: VertexData;
     let bit_0 = vertex_index & 1;
     let bit_1 = (vertex_index & 2) >> 1;
-    let corner = select(node.min_corner, node.max_corner, vec2<bool>((bit_0 ^ bit_1) == 1, bit_1 == 1));
+    let corner = select(node.min_corner - vec2<f32>(0.01, 0.01), node.max_corner + vec2<f32>(0.01, 0.01), vec2<bool>((bit_0 ^ bit_1) == 1, bit_1 == 1));
     out.position = vec4<f32>(corner, 0.0, 1.0);
     return out;
 }

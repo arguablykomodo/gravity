@@ -2,22 +2,44 @@ const std = @import("std");
 const core = @import("mach-core");
 const gpu = core.gpu;
 
-pub const Node = extern struct {
-    min_corner: @Vector(2, f32),
-    max_corner: @Vector(2, f32),
-    parent: u32,
-    left: u32,
-    left_is_leaf: bool,
-    right: u32,
-    right_is_leaf: bool,
-    center_of_mass: @Vector(2, f32),
+pub const Node = packed struct {
+    min_corner_x: f32,
+    min_corner_y: f32,
+    max_corner_x: f32,
+    max_corner_y: f32,
+    center_of_mass_x: f32,
+    center_of_mass_y: f32,
     total_mass: f32,
-    times_visited: std.atomic.Value(u32),
+    left_leaf: i32,
+    left_node: i32,
+    right_leaf: i32,
+    right_node: i32,
+    parent: u32,
+    times_visited: u32,
+
+    pub fn init() Node {
+        return .{
+            .min_corner_x = 0.0,
+            .min_corner_y = 0.0,
+            .max_corner_x = 0.0,
+            .max_corner_y = 0.0,
+            .center_of_mass_x = 0.0,
+            .center_of_mass_y = 0.0,
+            .total_mass = 0.0,
+            .left_leaf = -1,
+            .left_node = -1,
+            .right_leaf = -1,
+            .right_node = -1,
+            .parent = 0,
+            .times_visited = 0,
+        };
+    }
 
     pub fn pipeline() *gpu.RenderPipeline {
         const shader_module = core.device.createShaderModuleWGSL("node.wgsl", @embedFile("node.wgsl"));
         defer shader_module.release();
         return core.device.createRenderPipeline(&.{
+            .label = "node render pipeline",
             .vertex = gpu.VertexState.init(.{
                 .module = shader_module,
                 .entry_point = "vertex",
