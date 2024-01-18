@@ -1,14 +1,12 @@
 const std = @import("std");
 const core = @import("mach-core");
+const math = @import("mach").math;
 const gpu = core.gpu;
 
 pub const Particle = packed struct {
-    position_x: f32,
-    position_y: f32,
-    velocity_x: f32,
-    velocity_y: f32,
-    acceleration_x: f32,
-    acceleration_y: f32,
+    position: @Vector(2, f32),
+    velocity: @Vector(2, f32),
+    acceleration: @Vector(2, f32),
     mass: f32,
     parent: u32,
 
@@ -20,12 +18,9 @@ pub const Particle = packed struct {
         mass: f32,
     ) Particle {
         return .{
-            .position_x = position_x,
-            .position_y = position_y,
-            .velocity_x = velocity_x,
-            .velocity_y = velocity_y,
-            .acceleration_x = 0.0,
-            .acceleration_y = 0.0,
+            .position = .{ position_x, position_y },
+            .velocity = .{ velocity_x, velocity_y },
+            .acceleration = .{ 0.0, 0.0 },
             .mass = mass,
             .parent = 0,
         };

@@ -3,12 +3,9 @@ const core = @import("mach-core");
 const gpu = core.gpu;
 
 pub const Node = packed struct {
-    min_corner_x: f32,
-    min_corner_y: f32,
-    max_corner_x: f32,
-    max_corner_y: f32,
-    center_of_mass_x: f32,
-    center_of_mass_y: f32,
+    min_corner: @Vector(2, f32),
+    max_corner: @Vector(2, f32),
+    center_of_mass: @Vector(2, f32),
     total_mass: f32,
     left_leaf: i32,
     left_node: i32,
@@ -19,12 +16,9 @@ pub const Node = packed struct {
 
     pub fn init() Node {
         return .{
-            .min_corner_x = 0.0,
-            .min_corner_y = 0.0,
-            .max_corner_x = 0.0,
-            .max_corner_y = 0.0,
-            .center_of_mass_x = 0.0,
-            .center_of_mass_y = 0.0,
+            .min_corner = .{ 0.0, 0.0 },
+            .max_corner = .{ 0.0, 0.0 },
+            .center_of_mass = .{ 0.0, 0.0 },
             .total_mass = 0.0,
             .left_leaf = -1,
             .left_node = -1,
