@@ -20,6 +20,14 @@ struct VertexData {
     @location(2) acceleration: vec2<f32>,
 };
 
+struct Controls {
+    translation: vec2<f32>,
+    window_scale: vec2<f32>,
+    scale: f32,
+}
+
+@group(0) @binding(0) var<uniform> controls: Controls;
+
 fn radius(mass: f32) -> f32 {
     return sqrt(mass / PI);
 }
@@ -30,7 +38,11 @@ fn radius(mass: f32) -> f32 {
 ) -> VertexData {
     let vertex = QUAD[vertex_index];
     var out: VertexData;
-    out.position = vec4<f32>(vertex * radius(particle.mass) + particle.position, 0.0, 1.0);
+    var pos = vertex * radius(particle.mass) + particle.position;
+    pos += controls.translation * vec2<f32>(-1.0, 1.0);
+    pos /= controls.window_scale * 0.5;
+    pos *= controls.scale;
+    out.position = vec4<f32>(pos, 0.0, 1.0);
     out.uv = vertex;
     out.velocity = particle.velocity;
     out.acceleration = particle.acceleration;
