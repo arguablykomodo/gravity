@@ -11,17 +11,6 @@ pub const Particle = packed struct {
     acceleration_y: f32,
     mass: f32,
     parent: u32,
-    morton: u64,
-
-    fn interleave(input: u32) u64 {
-        var word: u64 = input;
-        word = (word ^ (word << 16)) & 0x0000ffff0000ffff;
-        word = (word ^ (word << 8)) & 0x00ff00ff00ff00ff;
-        word = (word ^ (word << 4)) & 0x0f0f0f0f0f0f0f0f;
-        word = (word ^ (word << 2)) & 0x3333333333333333;
-        word = (word ^ (word << 1)) & 0x5555555555555555;
-        return word;
-    }
 
     pub fn new(
         position_x: f32,
@@ -39,12 +28,7 @@ pub const Particle = packed struct {
             .acceleration_y = 0.0,
             .mass = mass,
             .parent = 0,
-            .morton = interleave(@bitCast(position_x)) | (interleave(@bitCast(position_y)) << 1),
         };
-    }
-
-    pub fn lessThan(_: void, lhs: Particle, rhs: Particle) bool {
-        return lhs.morton < rhs.morton;
     }
 
     pub fn pipeline() *gpu.RenderPipeline {
