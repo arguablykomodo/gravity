@@ -181,6 +181,8 @@ pub fn init(app: *App) !void {
         .physics_pipeline = physics_pipeline,
         .physics_bind_group = physics_bind_group,
     };
+
+    core.setFrameRateLimit(60);
 }
 
 pub fn deinit(app: *App) void {
