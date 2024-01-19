@@ -4,6 +4,7 @@ const Particle = @import("particle.zig").Particle;
 const Node = @import("node.zig").Node;
 const Controls = @import("Controls.zig");
 const Sorter = @import("Sorter.zig");
+const BvhBuilder = @import("BvhBuilder.zig");
 const gpu = core.gpu;
 
 const PARTICLES = 10;
@@ -23,12 +24,7 @@ node_pipeline: *gpu.RenderPipeline,
 node_bind_group: *gpu.BindGroup,
 
 sorter: Sorter,
-
-build_tree_pipeline: *gpu.ComputePipeline,
-build_tree_bind_group: *gpu.BindGroup,
-
-build_bvh_pipeline: *gpu.ComputePipeline,
-build_bvh_bind_group: *gpu.BindGroup,
+bvh_builder: BvhBuilder,
 
 physics_pipeline: *gpu.ComputePipeline,
 physics_bind_group: *gpu.BindGroup,
@@ -80,38 +76,6 @@ pub fn init(app: *App) !void {
     const compute_module = core.device.createShaderModuleWGSL("compute.wgsl", @embedFile("compute.wgsl"));
     defer compute_module.release();
 
-    const build_tree_pipeline = core.device.createComputePipeline(&.{
-        .label = "buildTree pipeline",
-        .compute = .{
-            .module = compute_module,
-            .entry_point = "buildTree",
-        },
-    });
-    const build_tree_bind_group = core.device.createBindGroup(&gpu.BindGroup.Descriptor.init(.{
-        .label = "buildTree bind group",
-        .layout = build_tree_pipeline.getBindGroupLayout(0),
-        .entries = &.{
-            gpu.BindGroup.Entry.buffer(0, particle_buffer, 0, @sizeOf(Particle) * particles.len),
-            gpu.BindGroup.Entry.buffer(1, node_buffer, 0, @sizeOf(Node) * nodes.len),
-        },
-    }));
-
-    const build_bvh_pipeline = core.device.createComputePipeline(&.{
-        .label = "buildBvh pipeline",
-        .compute = .{
-            .module = compute_module,
-            .entry_point = "buildBvh",
-        },
-    });
-    const build_bvh_bind_group = core.device.createBindGroup(&gpu.BindGroup.Descriptor.init(.{
-        .label = "buildBvh bind group",
-        .layout = build_bvh_pipeline.getBindGroupLayout(0),
-        .entries = &.{
-            gpu.BindGroup.Entry.buffer(0, particle_buffer, 0, @sizeOf(Particle) * particles.len),
-            gpu.BindGroup.Entry.buffer(1, node_buffer, 0, @sizeOf(Node) * nodes.len),
-        },
-    }));
-
     const physics_pipeline = core.device.createComputePipeline(&.{
         .label = "physics pipeline",
         .compute = .{
@@ -141,12 +105,7 @@ pub fn init(app: *App) !void {
         .node_bind_group = node_bind_group,
 
         .sorter = Sorter.init(particle_buffer),
-
-        .build_tree_pipeline = build_tree_pipeline,
-        .build_tree_bind_group = build_tree_bind_group,
-
-        .build_bvh_pipeline = build_bvh_pipeline,
-        .build_bvh_bind_group = build_bvh_bind_group,
+        .bvh_builder = BvhBuilder.init(particle_buffer, node_buffer),
 
         .physics_pipeline = physics_pipeline,
         .physics_bind_group = physics_bind_group,
@@ -159,12 +118,7 @@ pub fn deinit(app: *App) void {
     app.physics_bind_group.release();
     app.physics_pipeline.release();
 
-    app.build_bvh_bind_group.release();
-    app.build_bvh_pipeline.release();
-
-    app.build_tree_bind_group.release();
-    app.build_tree_pipeline.release();
-
+    app.bvh_builder.deinit();
     app.sorter.deinit();
 
     app.node_bind_group.release();
@@ -204,13 +158,7 @@ pub fn update(app: *App) !bool {
 
     const compute_pass = encoder.beginComputePass(null);
 
-    compute_pass.setPipeline(app.build_tree_pipeline);
-    compute_pass.setBindGroup(0, app.build_tree_bind_group, null);
-    compute_pass.dispatchWorkgroups(@intCast(app.nodes.len), 1, 1);
-
-    compute_pass.setPipeline(app.build_bvh_pipeline);
-    compute_pass.setBindGroup(0, app.build_bvh_bind_group, null);
-    compute_pass.dispatchWorkgroups(@intCast(app.particles.len), 1, 1);
+    app.bvh_builder.buildBvh(compute_pass, @intCast(app.particles.len));
 
     compute_pass.setPipeline(app.physics_pipeline);
     compute_pass.setBindGroup(0, app.physics_bind_group, null);
