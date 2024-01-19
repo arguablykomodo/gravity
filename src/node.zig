@@ -2,7 +2,7 @@ const std = @import("std");
 const core = @import("mach-core");
 const gpu = core.gpu;
 
-pub const Node = packed struct {
+pub const Node = struct {
     min_corner: @Vector(2, f32),
     max_corner: @Vector(2, f32),
     center_of_mass: @Vector(2, f32),

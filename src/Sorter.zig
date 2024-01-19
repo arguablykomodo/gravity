@@ -1,6 +1,5 @@
 const std = @import("std");
 const core = @import("mach-core");
-const Particle = @import("particle.zig").Particle;
 const gpu = core.gpu;
 
 uniform_buffer: *gpu.Buffer,

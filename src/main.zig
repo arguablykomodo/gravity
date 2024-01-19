@@ -1,6 +1,6 @@
 const std = @import("std");
 const core = @import("mach-core");
-const Particle = @import("particle.zig").Particle;
+const Particles = @import("Particles.zig");
 const Node = @import("node.zig").Node;
 const Controls = @import("Controls.zig");
 const Sorter = @import("Sorter.zig");
@@ -13,10 +13,7 @@ pub const App = @This();
 
 controls: Controls,
 
-particles: []Particle,
-particle_buffer: *gpu.Buffer,
-particle_pipeline: *gpu.RenderPipeline,
-particle_bind_group: *gpu.BindGroup,
+particles: Particles,
 
 nodes: []Node,
 node_buffer: *gpu.Buffer,
@@ -37,28 +34,20 @@ pub fn init(app: *App) !void {
 
     const controls = Controls.init();
 
-    const particles = try core.allocator.alloc(Particle, PARTICLES);
-    for (particles) |*p| p.* = Particle.new(
+    const particles = Particles.init(controls.buffer, PARTICLES);
+
+    const initial_particles = try core.allocator.alloc(Particles.Particle, PARTICLES);
+    defer core.allocator.free(initial_particles);
+    for (initial_particles) |*p| p.* = Particles.Particle.new(
         random.float(f32) * 1.5 - 0.75,
         random.float(f32) * 1.5 - 0.75,
         0.0,
         0.0,
         0.001,
     );
-    const particle_buffer = core.device.createBuffer(&.{
-        .label = "particle buffer",
-        .usage = .{ .storage = true, .vertex = true, .copy_dst = true },
-        .size = @sizeOf(Particle) * particles.len,
-    });
-    core.queue.writeBuffer(particle_buffer, 0, particles[0..]);
-    const particle_pipeline = Particle.pipeline();
-    const particle_bind_group = core.device.createBindGroup(&gpu.BindGroup.Descriptor.init(.{
-        .label = "particle bind group",
-        .layout = particle_pipeline.getBindGroupLayout(0),
-        .entries = &.{gpu.BindGroup.Entry.buffer(0, controls.buffer, 0, @sizeOf(Controls.Uniforms))},
-    }));
+    core.queue.writeBuffer(particles.buffer, 0, initial_particles[0..]);
 
-    const nodes = try core.allocator.alloc(Node, particles.len - 1);
+    const nodes = try core.allocator.alloc(Node, PARTICLES - 1);
     @memset(nodes, Node.init());
     const node_buffer = core.device.createBuffer(&.{
         .label = "node buffer",
@@ -87,7 +76,7 @@ pub fn init(app: *App) !void {
         .label = "physics bind group",
         .layout = physics_pipeline.getBindGroupLayout(0),
         .entries = &.{
-            gpu.BindGroup.Entry.buffer(0, particle_buffer, 0, @sizeOf(Particle) * particles.len),
+            gpu.BindGroup.Entry.buffer(0, particles.buffer, 0, particles.buffer.getSize()),
         },
     }));
 
@@ -95,17 +84,14 @@ pub fn init(app: *App) !void {
         .controls = controls,
 
         .particles = particles,
-        .particle_buffer = particle_buffer,
-        .particle_pipeline = particle_pipeline,
-        .particle_bind_group = particle_bind_group,
 
         .nodes = nodes,
         .node_buffer = node_buffer,
         .node_pipeline = node_pipeline,
         .node_bind_group = node_bind_group,
 
-        .sorter = Sorter.init(particle_buffer),
-        .bvh_builder = BvhBuilder.init(particle_buffer, node_buffer),
+        .sorter = Sorter.init(particles.buffer),
+        .bvh_builder = BvhBuilder.init(particles.buffer, node_buffer),
 
         .physics_pipeline = physics_pipeline,
         .physics_bind_group = physics_bind_group,
@@ -126,10 +112,7 @@ pub fn deinit(app: *App) void {
     app.node_buffer.release();
     core.allocator.free(app.nodes);
 
-    app.particle_bind_group.release();
-    app.particle_pipeline.release();
-    app.particle_buffer.release();
-    core.allocator.free(app.particles);
+    app.particles.deinit();
 
     app.controls.deinit();
 
@@ -150,7 +133,7 @@ pub fn update(app: *App) !bool {
         }
     }
 
-    app.sorter.sort(@intCast(app.particles.len));
+    app.sorter.sort(PARTICLES);
 
     const back_buffer_view = core.swap_chain.getCurrentTextureView().?;
 
@@ -158,11 +141,11 @@ pub fn update(app: *App) !bool {
 
     const compute_pass = encoder.beginComputePass(null);
 
-    app.bvh_builder.buildBvh(compute_pass, @intCast(app.particles.len));
+    app.bvh_builder.buildBvh(compute_pass, PARTICLES);
 
     compute_pass.setPipeline(app.physics_pipeline);
     compute_pass.setBindGroup(0, app.physics_bind_group, null);
-    compute_pass.dispatchWorkgroups(@intCast(app.particles.len), 1, 1);
+    compute_pass.dispatchWorkgroups(PARTICLES, 1, 1);
 
     compute_pass.end();
     compute_pass.release();
@@ -182,10 +165,7 @@ pub fn update(app: *App) !bool {
     render_pass.setVertexBuffer(0, app.node_buffer, 0, gpu.whole_size);
     render_pass.draw(5, @intCast(app.nodes.len), 0, 0);
 
-    render_pass.setPipeline(app.particle_pipeline);
-    render_pass.setBindGroup(0, app.particle_bind_group, null);
-    render_pass.setVertexBuffer(0, app.particle_buffer, 0, gpu.whole_size);
-    render_pass.draw(4, @intCast(app.particles.len), 0, 0);
+    app.particles.render(render_pass, PARTICLES);
 
     render_pass.end();
     render_pass.release();
