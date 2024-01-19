@@ -3,6 +3,7 @@ const core = @import("mach-core");
 const Particle = @import("particle.zig").Particle;
 const Node = @import("node.zig").Node;
 const Controls = @import("Controls.zig");
+const Sorter = @import("Sorter.zig");
 const gpu = core.gpu;
 
 const PARTICLES = 10;
@@ -21,9 +22,7 @@ node_buffer: *gpu.Buffer,
 node_pipeline: *gpu.RenderPipeline,
 node_bind_group: *gpu.BindGroup,
 
-sort_uniform_buffer: *gpu.Buffer,
-sort_pipeline: *gpu.ComputePipeline,
-sort_bind_group: *gpu.BindGroup,
+sorter: Sorter,
 
 build_tree_pipeline: *gpu.ComputePipeline,
 build_tree_bind_group: *gpu.BindGroup,
@@ -33,12 +32,6 @@ build_bvh_bind_group: *gpu.BindGroup,
 
 physics_pipeline: *gpu.ComputePipeline,
 physics_bind_group: *gpu.BindGroup,
-
-const SortUniforms = struct {
-    group_width: u32,
-    group_height: u32,
-    step: u32,
-};
 
 pub fn init(app: *App) !void {
     try core.init(.{});
@@ -86,27 +79,6 @@ pub fn init(app: *App) !void {
 
     const compute_module = core.device.createShaderModuleWGSL("compute.wgsl", @embedFile("compute.wgsl"));
     defer compute_module.release();
-
-    const sort_uniform_buffer = core.device.createBuffer(&.{
-        .label = "sort uniform buffer",
-        .usage = .{ .uniform = true, .copy_dst = true },
-        .size = @sizeOf(SortUniforms),
-    });
-    const sort_pipeline = core.device.createComputePipeline(&.{
-        .label = "sort pipeline",
-        .compute = .{
-            .module = compute_module,
-            .entry_point = "sort",
-        },
-    });
-    const sort_bind_group = core.device.createBindGroup(&gpu.BindGroup.Descriptor.init(.{
-        .label = "sort bind group",
-        .layout = sort_pipeline.getBindGroupLayout(0),
-        .entries = &.{
-            gpu.BindGroup.Entry.buffer(0, particle_buffer, 0, @sizeOf(Particle) * particles.len),
-            gpu.BindGroup.Entry.buffer(2, sort_uniform_buffer, 0, @sizeOf(SortUniforms)),
-        },
-    }));
 
     const build_tree_pipeline = core.device.createComputePipeline(&.{
         .label = "buildTree pipeline",
@@ -168,9 +140,7 @@ pub fn init(app: *App) !void {
         .node_pipeline = node_pipeline,
         .node_bind_group = node_bind_group,
 
-        .sort_uniform_buffer = sort_uniform_buffer,
-        .sort_pipeline = sort_pipeline,
-        .sort_bind_group = sort_bind_group,
+        .sorter = Sorter.init(particle_buffer),
 
         .build_tree_pipeline = build_tree_pipeline,
         .build_tree_bind_group = build_tree_bind_group,
@@ -195,9 +165,7 @@ pub fn deinit(app: *App) void {
     app.build_tree_bind_group.release();
     app.build_tree_pipeline.release();
 
-    app.sort_bind_group.release();
-    app.sort_pipeline.release();
-    app.sort_uniform_buffer.release();
+    app.sorter.deinit();
 
     app.node_bind_group.release();
     app.node_pipeline.release();
@@ -228,32 +196,7 @@ pub fn update(app: *App) !bool {
         }
     }
 
-    const numStages = std.math.log2_int(u32, std.math.ceilPowerOfTwoAssert(u32, @intCast(app.particles.len)));
-    for (0..numStages) |stageIndex| {
-        for (0..(stageIndex + 1)) |stepIndex| {
-            // Calculate some pattern stuff
-            const groupWidth = @as(u32, 1) << @intCast(stageIndex - stepIndex);
-            const groupHeight = 2 * groupWidth - 1;
-            // Run the sorting step on the GPU
-            const runs = std.math.ceilPowerOfTwoAssert(u32, @intCast(app.particles.len)) / 2;
-            core.queue.writeBuffer(app.sort_uniform_buffer, 0, &[1]SortUniforms{.{
-                .group_width = groupWidth,
-                .group_height = groupHeight,
-                .step = @intCast(stepIndex),
-            }});
-            const encoder = core.device.createCommandEncoder(null);
-            const compute_pass = encoder.beginComputePass(null);
-            compute_pass.setPipeline(app.sort_pipeline);
-            compute_pass.setBindGroup(0, app.sort_bind_group, null);
-            compute_pass.dispatchWorkgroups(runs, 1, 1);
-            compute_pass.end();
-            compute_pass.release();
-            var command = encoder.finish(null);
-            encoder.release();
-            core.queue.submit(&[_]*gpu.CommandBuffer{command});
-            command.release();
-        }
-    }
+    app.sorter.sort(@intCast(app.particles.len));
 
     const back_buffer_view = core.swap_chain.getCurrentTextureView().?;
 
