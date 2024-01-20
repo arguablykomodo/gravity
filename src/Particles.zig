@@ -31,7 +31,7 @@ pub fn init(controls: *gpu.Buffer, max_particles: u32) @This() {
 
     const buffer = core.device.createBuffer(&.{
         .label = "particle buffer",
-        .usage = .{ .storage = true, .vertex = true, .copy_dst = true },
+        .usage = .{ .storage = true, .vertex = true, .copy_src = true, .copy_dst = true },
         .size = @sizeOf(Particle) * max_particles,
     });
     const pipeline = core.device.createRenderPipeline(&.{

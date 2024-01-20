@@ -40,7 +40,7 @@ pub fn init(controls: *gpu.Buffer, max_nodes: u32) @This() {
 
     const buffer = core.device.createBuffer(&.{
         .label = "node buffer",
-        .usage = .{ .storage = true, .vertex = true, .copy_dst = true },
+        .usage = .{ .storage = true, .vertex = true, .copy_src = true, .copy_dst = true },
         .size = @sizeOf(Node) * max_nodes,
     });
     const pipeline = core.device.createRenderPipeline(&.{
