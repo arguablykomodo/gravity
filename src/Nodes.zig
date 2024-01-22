@@ -54,10 +54,12 @@ pub fn init(controls: *gpu.Buffer, max_nodes: u32) @This() {
                 .attributes = &.{
                     .{ .shader_location = 0, .offset = 0, .format = .float32x2 },
                     .{ .shader_location = 1, .offset = 2 * @sizeOf(f32), .format = .float32x2 },
+                    .{ .shader_location = 2, .offset = 4 * @sizeOf(f32), .format = .float32x2 },
+                    .{ .shader_location = 3, .offset = 6 * @sizeOf(f32), .format = .float32 },
                 },
             })},
         }),
-        .primitive = .{ .topology = .line_strip },
+        .primitive = .{ .topology = .triangle_strip },
         .fragment = &gpu.FragmentState.init(.{
             .module = shader,
             .entry_point = "fragment",
@@ -93,5 +95,5 @@ pub fn render(self: *@This(), pass: *gpu.RenderPassEncoder, nodes: u32) void {
     pass.setPipeline(self.pipeline);
     pass.setBindGroup(0, self.bind_group, null);
     pass.setVertexBuffer(0, self.buffer, 0, gpu.whole_size);
-    pass.draw(5, nodes, 0, 0);
+    pass.draw(4, nodes, 0, 0);
 }
