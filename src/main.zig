@@ -1,12 +1,12 @@
 const std = @import("std");
-const core = @import("mach-core");
+const core = @import("mach").core;
 const Particles = @import("Particles.zig");
 const Nodes = @import("Nodes.zig");
 const Controls = @import("Controls.zig");
 const Sorter = @import("Sorter.zig");
 const BvhBuilder = @import("BvhBuilder.zig");
 const Physics = @import("Physics.zig");
-const gpu = core.gpu;
+const gpu = @import("mach").gpu;
 
 const PARTICLES = 32768;
 

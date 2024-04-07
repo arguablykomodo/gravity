@@ -1,7 +1,7 @@
 const std = @import("std");
-const core = @import("mach-core");
+const core = @import("mach").core;
 const math = @import("mach").math;
-const gpu = core.gpu;
+const gpu = @import("mach").gpu;
 
 buffer: *gpu.Buffer,
 pipeline: *gpu.RenderPipeline,

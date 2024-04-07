@@ -1,6 +1,6 @@
 const std = @import("std");
-const core = @import("mach-core");
-const gpu = core.gpu;
+const core = @import("mach").core;
+const gpu = @import("mach").gpu;
 
 pub const Uniforms = struct {
     translation: @Vector(2, f32),

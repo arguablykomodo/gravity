@@ -1,6 +1,6 @@
 const std = @import("std");
-const core = @import("mach-core");
-const gpu = core.gpu;
+const core = @import("mach").core;
+const gpu = @import("mach").gpu;
 
 tree_pipeline: *gpu.ComputePipeline,
 tree_bind_group: *gpu.BindGroup,
