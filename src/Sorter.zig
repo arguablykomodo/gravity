@@ -13,7 +13,7 @@ pub const Uniforms = struct {
 };
 
 pub fn init(particles: *gpu.Buffer) @This() {
-    const shader = core.device.createShaderModuleWGSL("sort.wgsl", @embedFile("sort.wgsl"));
+    const shader = core.device.createShaderModuleWGSL("sort.wgsl", @embedFile("shaders/sort.wgsl"));
     defer shader.release();
 
     const uniform_buffer = core.device.createBuffer(&.{

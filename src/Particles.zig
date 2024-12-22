@@ -26,7 +26,7 @@ pub const Particle = packed struct {
 };
 
 pub fn init(controls: *gpu.Buffer, max_particles: u32) @This() {
-    const shader = core.device.createShaderModuleWGSL("particle.wgsl", @embedFile("particle.wgsl"));
+    const shader = core.device.createShaderModuleWGSL("particle.wgsl", @embedFile("shaders/particle.wgsl"));
     defer shader.release();
 
     const buffer = core.device.createBuffer(&.{

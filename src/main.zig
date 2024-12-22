@@ -1,7 +1,7 @@
 const std = @import("std");
 const core = @import("mach").core;
 const Particles = @import("Particles.zig");
-const Nodes = @import("Nodes.zig");
+const BvhNodes = @import("BvhNodes.zig");
 const Controls = @import("Controls.zig");
 const Sorter = @import("Sorter.zig");
 const BvhBuilder = @import("BvhBuilder.zig");
@@ -14,7 +14,7 @@ pub const App = @This();
 
 controls: Controls,
 particles: Particles,
-nodes: Nodes,
+bvh_nodes: BvhNodes,
 sorter: Sorter,
 bvh_builder: BvhBuilder,
 physics: Physics,
@@ -27,7 +27,7 @@ pub fn init(app: *App) !void {
 
     const controls = Controls.init();
     const particles = Particles.init(controls.buffer, PARTICLES);
-    const nodes = Nodes.init(controls.buffer, PARTICLES - 1);
+    const bvh_nodes = BvhNodes.init(controls.buffer, PARTICLES - 1);
 
     const initial_particles = try core.allocator.alloc(Particles.Particle, PARTICLES);
     defer core.allocator.free(initial_particles);
@@ -40,17 +40,17 @@ pub fn init(app: *App) !void {
     );
     core.queue.writeBuffer(particles.buffer, 0, initial_particles[0..]);
 
-    const initial_nodes = try core.allocator.alloc(Nodes.Node, PARTICLES - 1);
+    const initial_nodes = try core.allocator.alloc(BvhNodes.BvhNode, PARTICLES - 1);
     defer core.allocator.free(initial_nodes);
-    @memset(initial_nodes, Nodes.Node.init());
-    core.queue.writeBuffer(nodes.buffer, 0, initial_nodes[0..]);
+    @memset(initial_nodes, BvhNodes.BvhNode.init());
+    core.queue.writeBuffer(bvh_nodes.buffer, 0, initial_nodes[0..]);
 
     app.* = .{
         .controls = controls,
         .particles = particles,
-        .nodes = nodes,
+        .bvh_nodes = bvh_nodes,
         .sorter = Sorter.init(particles.buffer),
-        .bvh_builder = BvhBuilder.init(particles.buffer, nodes.buffer),
+        .bvh_builder = BvhBuilder.init(particles.buffer, bvh_nodes.buffer),
         .physics = Physics.init(PARTICLES, particles.buffer),
     };
 
@@ -61,7 +61,7 @@ pub fn deinit(app: *App) void {
     app.physics.deinit();
     app.bvh_builder.deinit();
     app.sorter.deinit();
-    app.nodes.deinit();
+    app.bvh_nodes.deinit();
     app.particles.deinit();
     app.controls.deinit();
     core.deinit();
@@ -96,7 +96,7 @@ pub fn update(app: *App) !bool {
     compute_pass.end();
     compute_pass.release();
 
-    app.physics.copy(encoder, app.particles.buffer, app.nodes.buffer);
+    app.physics.copy(encoder, app.particles.buffer, app.bvh_nodes.buffer);
 
     const render_pass = encoder.beginRenderPass(&gpu.RenderPassDescriptor.init(.{
         .label = "render pass",
@@ -108,7 +108,7 @@ pub fn update(app: *App) !bool {
         }},
     }));
 
-    app.nodes.render(render_pass, PARTICLES - 1);
+    app.bvh_nodes.render(render_pass, PARTICLES - 1);
     app.particles.render(render_pass, PARTICLES);
 
     render_pass.end();

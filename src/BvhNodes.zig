@@ -6,7 +6,7 @@ buffer: *gpu.Buffer,
 pipeline: *gpu.RenderPipeline,
 bind_group: *gpu.BindGroup,
 
-pub const Node = struct {
+pub const BvhNode = struct {
     min_corner: @Vector(2, f32),
     max_corner: @Vector(2, f32),
     center_of_mass: @Vector(2, f32),
@@ -18,7 +18,7 @@ pub const Node = struct {
     parent: u32,
     times_visited: u32,
 
-    pub fn init() Node {
+    pub fn init() BvhNode {
         return .{
             .min_corner = .{ 0.0, 0.0 },
             .max_corner = .{ 0.0, 0.0 },
@@ -35,13 +35,13 @@ pub const Node = struct {
 };
 
 pub fn init(controls: *gpu.Buffer, max_nodes: u32) @This() {
-    const shader = core.device.createShaderModuleWGSL("node.wgsl", @embedFile("node.wgsl"));
+    const shader = core.device.createShaderModuleWGSL("node.wgsl", @embedFile("shaders/node.wgsl"));
     defer shader.release();
 
     const buffer = core.device.createBuffer(&.{
         .label = "node buffer",
         .usage = .{ .storage = true, .vertex = true, .copy_src = true, .copy_dst = true },
-        .size = @sizeOf(Node) * max_nodes,
+        .size = @sizeOf(BvhNode) * max_nodes,
     });
     const pipeline = core.device.createRenderPipeline(&.{
         .label = "node render pipeline",
@@ -49,7 +49,7 @@ pub fn init(controls: *gpu.Buffer, max_nodes: u32) @This() {
             .module = shader,
             .entry_point = "vertex",
             .buffers = &.{gpu.VertexBufferLayout.init(.{
-                .array_stride = @sizeOf(Node),
+                .array_stride = @sizeOf(BvhNode),
                 .step_mode = .instance,
                 .attributes = &.{
                     .{ .shader_location = 0, .offset = 0, .format = .float32x2 },

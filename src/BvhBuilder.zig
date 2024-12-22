@@ -9,7 +9,7 @@ bvh_pipeline: *gpu.ComputePipeline,
 bvh_bind_group: *gpu.BindGroup,
 
 pub fn init(particles: *gpu.Buffer, nodes: *gpu.Buffer) @This() {
-    const shader = core.device.createShaderModuleWGSL("bvh.wgsl", @embedFile("bvh.wgsl"));
+    const shader = core.device.createShaderModuleWGSL("bvh.wgsl", @embedFile("shaders/bvh.wgsl"));
     defer shader.release();
 
     const tree_pipeline = core.device.createComputePipeline(&.{

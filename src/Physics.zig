@@ -3,7 +3,7 @@ const core = @import("mach").core;
 const gpu = @import("mach").gpu;
 
 const Particle = @import("Particles.zig").Particle;
-const Node = @import("Nodes.zig").Node;
+const BvhNode = @import("BvhNodes.zig").BvhNode;
 
 particle_buffer: *gpu.Buffer,
 particle_staging_buffer: *gpu.Buffer,
@@ -18,7 +18,7 @@ pub fn init(max_particles: u32, particle_buffer: *gpu.Buffer) @This() {
     const node_staging_buffer = core.device.createBuffer(&.{
         .label = "node staging buffer",
         .usage = .{ .map_read = true, .copy_dst = true },
-        .size = @sizeOf(Node) * (max_particles - 1),
+        .size = @sizeOf(BvhNode) * (max_particles - 1),
     });
     return .{
         .particle_buffer = particle_buffer,
@@ -56,7 +56,7 @@ inline fn callback(self: *@This(), status: gpu.Buffer.MapAsyncStatus) void {
     defer self.node_staging_buffer.unmap();
     defer self.particle_staging_buffer.unmap();
     const particles = self.particle_staging_buffer.getConstMappedRange(Particle, 0, 32768).?;
-    const nodes = self.node_staging_buffer.getConstMappedRange(Node, 0, 32767).?;
+    const nodes = self.node_staging_buffer.getConstMappedRange(BvhNode, 0, 32767).?;
     const new_particles = core.allocator.dupe(Particle, particles) catch unreachable;
     defer core.allocator.free(new_particles);
     for (new_particles, 0..) |*p, i| {
@@ -78,7 +78,7 @@ pub fn force(self: Particle, position: @Vector(2, f32), mass: f32) @Vector(2, f3
     return direction * @as(@Vector(2, f32), @splat((self.mass * mass) / @max(0.01, distance * distance)));
 }
 
-fn forces(particle: usize, node_i: usize, particles: []const Particle, nodes: []const Node) @Vector(2, f32) {
+fn forces(particle: usize, node_i: usize, particles: []const Particle, nodes: []const BvhNode) @Vector(2, f32) {
     var total = @Vector(2, f32){ 0.0, 0.0 };
     const node = nodes[node_i];
     if (node.left_leaf > -1) {
