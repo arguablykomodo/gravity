@@ -1,3 +1,8 @@
+import particleVertex from "../shaders/particle.vert" with { type: "text" };
+import particleFragment from "../shaders/particle.frag" with { type: "text" };
+import nodeVertex from "../shaders/node.vert" with { type: "text" };
+import nodeFragment from "../shaders/node.frag" with { type: "text" };
+
 import { setupControls, viewMatrix } from "./controls.ts";
 import { createPipeline, Pipeline, renderPipeline } from "./gl.ts";
 import { multiply, scaling } from "./matrix.ts";
@@ -56,13 +61,6 @@ setupWasm(returnError, returnParticles, returnNodes).then(async (w) => {
   const globalView = new DataView(wasm.memory.buffer);
   sizeOfParticle = globalView.getUint32(wasm.sizeOfParticle.value, true);
   sizeOfNode = globalView.getUint32(wasm.sizeOfNode.value, true);
-
-  const [particleVertex, particleFragment, nodeVertex, nodeFragment] =
-    await Promise.all(
-      ["particle.vert", "particle.frag", "node.vert", "node.frag"].map((s) =>
-        fetch(s).then((r) => r.text())
-      ),
-    );
 
   particlesPipeline = createPipeline(
     gl,

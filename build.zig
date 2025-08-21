@@ -6,7 +6,9 @@ fn watchDir(b: *std.Build, step: *std.Build.Step.Run, dir: []const u8) !void {
     var walker = try ts_dir.walk(b.allocator);
     defer walker.deinit();
     while (walker.next() catch unreachable) |entry| {
-        step.addFileInput(b.path(b.pathJoin(&.{ dir, entry.path })));
+        const entry_path = b.pathJoin(&.{ dir, entry.path });
+        if (entry.kind == .directory) try watchDir(b, step, entry_path)
+        else step.addFileInput(b.path(entry_path));
     }
 }
 
@@ -37,19 +39,12 @@ pub fn build(b: *std.Build) void {
     const install_wasm = b.addInstallArtifact(build_wasm, .{ .dest_dir = .{ .override = .prefix } });
     b.getInstallStep().dependOn(&install_wasm.step);
 
-    const install_static = b.addInstallDirectory(.{
-        .source_dir = b.path("static"),
-        .install_dir = .prefix,
-        .install_subdir = "",
-    });
-    b.getInstallStep().dependOn(&install_static.step);
-
     const run_bundle = b.addSystemCommand(&.{ "bun", "build" });
     if (optimize == .Debug) run_bundle.addArg("--sourcemap") else run_bundle.addArg("--minify");
-    run_bundle.addFileArg(b.path("ts/main.ts"));
+    run_bundle.addFileArg(b.path("web/index.html"));
     run_bundle.addArg("--outdir");
     const bundle_dir = run_bundle.addOutputDirectoryArg("bun_bundle");
-    watchDir(b, run_bundle, "ts") catch unreachable;
+    watchDir(b, run_bundle, "web") catch unreachable;
     const install_bundle = b.addInstallDirectory(.{
         .source_dir = bundle_dir,
         .install_dir = .prefix,
