@@ -54,7 +54,7 @@ pub const Quadtree = struct {
         return Quadtree{
             .alloc = alloc,
             .root = null,
-            .particles = std.ArrayList(Particle).init(alloc),
+            .particles = std.ArrayList(Particle){},
             .big_g = big_g,
             .theta = theta,
             .scale = scale,
@@ -62,7 +62,7 @@ pub const Quadtree = struct {
     }
 
     pub fn deinit(self: *Quadtree) void {
-        self.particles.deinit();
+        self.particles.deinit(self.alloc);
         if (self.root) |root| self.deinitNode(root);
     }
 
@@ -80,7 +80,7 @@ pub const Quadtree = struct {
 
     pub fn insertParticle(self: *Quadtree, particle: Particle) !void {
         if (self.withinBounds(particle)) {
-            try self.particles.append(particle);
+            try self.particles.append(self.alloc, particle);
             try self.insertIntoTree(self.particles.items.len - 1);
         }
     }
@@ -255,9 +255,9 @@ pub const Quadtree = struct {
     }
 
     pub fn disk(self: *Quadtree, seed: u64, particles: usize, dispersion: f32, mass: f32) !void {
-        var random = std.rand.DefaultPrng.init(seed);
+        var random = std.Random.DefaultPrng.init(seed);
         const rng = random.random();
-        try self.particles.ensureUnusedCapacity(particles);
+        try self.particles.ensureUnusedCapacity(self.alloc, particles);
         const total_mass = @as(f32, @floatFromInt(particles)) * mass;
         const rate = 1.0 / dispersion;
         for (0..particles) |_| {

@@ -47,7 +47,7 @@ export fn getParticles() void {
     returnParticles(quadtree.particles.items.ptr, quadtree.particles.items.len);
 }
 
-var nodes = std.ArrayList(GlNode).init(std.heap.wasm_allocator);
+var nodes = std.ArrayList(GlNode){};
 extern fn returnNodes(ptr: [*]GlNode, len: usize) void;
 export fn getNodes() void {
     nodes.shrinkRetainingCapacity(0);
@@ -56,7 +56,7 @@ export fn getNodes() void {
 }
 
 fn appendNodes(node: *Quadtree.Node) !void {
-    try nodes.append(.{
+    try nodes.append(std.heap.wasm_allocator, .{
         .center = node.center,
         .radius = node.radius,
         .total_mass = switch (node.data) {

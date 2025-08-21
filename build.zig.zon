@@ -1,0 +1,11 @@
+.{
+    .name = .gravity,
+    .version = "0.1.0",
+    .fingerprint = 0x5a1d25a72dc1c627, // Changing this has security and trust implications.
+    .minimum_zig_version = "0.15.0",
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

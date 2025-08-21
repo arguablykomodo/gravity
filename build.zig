@@ -1,36 +1,36 @@
 const std = @import("std");
 
-fn walkDir(b: *std.Build, dir: []const u8) ![]const []const u8 {
-    var files = std.ArrayList([]const u8).init(b.allocator);
-    errdefer files.deinit();
+fn watchDir(b: *std.Build, step: *std.Build.Step.Run, dir: []const u8) !void {
     var ts_dir = try std.fs.openDirAbsolute(b.pathFromRoot(dir), .{ .iterate = true });
     defer ts_dir.close();
     var walker = try ts_dir.walk(b.allocator);
     defer walker.deinit();
     while (walker.next() catch unreachable) |entry| {
-        try files.append(try b.allocator.dupe(u8, b.pathJoin(&.{ dir, entry.path })));
+        step.addFileInput(b.path(b.pathJoin(&.{ dir, entry.path })));
     }
-    return try files.toOwnedSlice();
 }
 
 pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
-
     const cpu_features = std.Target.wasm.featureSet(&.{
         .multivalue,
         .relaxed_simd,
         .simd128,
     });
+    const wasm_target = b.resolveTargetQuery(.{
+        .cpu_arch = .wasm32,
+        .os_tag = .freestanding,
+        .cpu_features_add = cpu_features,
+    });
+    const native_target = b.standardTargetOptions(.{});
 
     const build_wasm = b.addExecutable(.{
         .name = "gravity",
-        .target = b.resolveTargetQuery(.{
-            .cpu_arch = .wasm32,
-            .os_tag = .freestanding,
-            .cpu_features_add = cpu_features,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("zig/wasm.zig"),
+            .target = wasm_target,
+            .optimize = optimize,
         }),
-        .optimize = optimize,
-        .root_source_file = .{ .path = "zig/wasm.zig" },
     });
     build_wasm.entry = .disabled;
     build_wasm.rdynamic = true;
@@ -38,7 +38,7 @@ pub fn build(b: *std.Build) void {
     b.getInstallStep().dependOn(&install_wasm.step);
 
     const install_static = b.addInstallDirectory(.{
-        .source_dir = .{ .path = "static" },
+        .source_dir = b.path("static"),
         .install_dir = .prefix,
         .install_subdir = "",
     });
@@ -46,28 +46,36 @@ pub fn build(b: *std.Build) void {
 
     const run_bundle = b.addSystemCommand(&.{ "bun", "build" });
     if (optimize == .Debug) run_bundle.addArg("--sourcemap") else run_bundle.addArg("--minify");
-    run_bundle.addFileArg(.{ .path = "ts/main.ts" });
-    run_bundle.extra_file_dependencies = walkDir(b, "ts") catch unreachable;
-    const bundled = run_bundle.captureStdOut();
-    const install_bundle = b.addInstallFile(bundled, "main.js");
+    run_bundle.addFileArg(b.path("ts/main.ts"));
+    run_bundle.addArg("--outdir");
+    const bundle_dir = run_bundle.addOutputDirectoryArg("bun_bundle");
+    watchDir(b, run_bundle, "ts") catch unreachable;
+    const install_bundle = b.addInstallDirectory(.{
+        .source_dir = bundle_dir,
+        .install_dir = .prefix,
+        .install_subdir = "",
+    });
     b.getInstallStep().dependOn(&install_bundle.step);
 
     const build_tests = b.addTest(.{
-        .root_source_file = .{ .path = "zig/test.zig" },
-        .optimize = optimize,
+        .use_llvm = true, // Self-hosted has some miscompilations involving SIMD
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("zig/test.zig"),
+            .target = native_target,
+            .optimize = optimize,
+        }),
     });
     const run_tests = b.addRunArtifact(build_tests);
     b.step("test", "Run tests").dependOn(&run_tests.step);
 
     const build_bench = b.addExecutable(.{
         .name = "bench",
-        .target = b.resolveTargetQuery(.{
-            .cpu_arch = .wasm32,
-            .os_tag = .wasi,
-            .cpu_features_add = cpu_features,
+        .use_llvm = true, // Self-hosted has some miscompilations involving SIMD
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("zig/bench.zig"),
+            .target = native_target,
+            .optimize = optimize,
         }),
-        .optimize = optimize,
-        .root_source_file = .{ .path = "zig/bench.zig" },
     });
     const install_bench = b.addInstallArtifact(build_bench, .{});
     b.step("bench", "Build benchmark").dependOn(&install_bench.step);
